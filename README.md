@@ -27,7 +27,7 @@ Create and configure your own Dropbox app, then run with its app key:
 flutter run --dart-define=DROPBOX_APP_KEY=YOUR_APP_KEY
 ```
 
-The app key is a public OAuth client identifier and is supplied at compile time. Do not put an app secret or personal access token in the source code. Builds without `DROPBOX_APP_KEY` can run, but cannot connect to Dropbox.
+Builds without `DROPBOX_APP_KEY` can run, but cannot connect to Dropbox.
 
 ## Configure Dropbox
 
