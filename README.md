@@ -1,60 +1,70 @@
 # Calibre Index
 
-A modern Calibre library viewer for Android, made with Flutter.
+Calibre Index is a mobile companion for browsing and downloading books from a [Calibre](https://calibre-ebook.com/) library stored in Dropbox. It is a redesigned continuation of [Calibre Carte](https://github.com/Exlaza/CalibreCarte), originally created by Ekansh Jain and Prerna Dave.
 
-Available on [Google Play](https://play.google.com/store/apps/details?id=com.calibre_carte.app)
+This is an independent project. It is not affiliated with or endorsed by the Calibre or Dropbox projects.
 
-## Screenshots:
-<img src="https://github.com/Exlaza/CalibreCarte/blob/PrernaD-readmepatch-1/Calibre%20Carte%20Screenshots/tia235727476813115392.png" height="520px" > <img src="https://github.com/Exlaza/CalibreCarte/blob/PrernaD-readmepatch-1/Calibre%20Carte%20Screenshots/tia6743131661132596715.png" height="520px" >  <img src="https://github.com/Exlaza/CalibreCarte/blob/PrernaD-readmepatch-1/Calibre%20Carte%20Screenshots/tia4167180534174613768.png" height="520px" >    <img src="https://github.com/Exlaza/CalibreCarte/blob/PrernaD-readmepatch-1/Calibre%20Carte%20Screenshots/tia6785812278623844465.png" height="520px" >  <img src="https://github.com/Exlaza/CalibreCarte/blob/PrernaD-readmepatch-1/Calibre%20Carte%20Screenshots/tia7383909655501564497.png" height="520px" >  <img src="https://github.com/Exlaza/CalibreCarte/blob/PrernaD-readmepatch-1/Calibre%20Carte%20Screenshots/tia8923551482651499786.png" height="520px" >  
+## Features
 
-## Features:
-  - [x] Dropbox support
-  - [x] Search books by title and authors
-  - [x] Sort books by title and authors
-  - [x] List and grid layouts 
-  - [x] See book metadata and description
-  - [x] Dark mode
-  - [x] Download ebooks and select from available download formats
-  - [x] Open books in a compatible app
-  - [x] Easily switch between different Calibre© Libraries on Dropbox©
-  - [x] Select download directory on your phone for your books
+- **Material 3 design:** adapts to Android's system color palette when available, with light and dark themes.
+- **Search:** find books by title, author, or tags. Choose the active search field in Settings.
+- **Flexible browsing:** switch between grid and list layouts, sort by title or author, and choose ascending or descending order.
+- **Book details:** view metadata and description, move between books, and download or open available formats.
+- **Dropbox libraries:** find Calibre libraries in your Dropbox, choose which library to browse, and refresh its metadata.
+- **Offline reading:** save ebook files in a chosen download folder and open them with a compatible app.
 
-Calibre Index aims to deliver a beautiful UI and a smooth experience with accessing your Calibre libraries from your smartphone. We support free and open-source software much like Calibre itself and plan to keep adding features to the app.
+## Run locally
 
-## Dropbox setup
+Fetch the project dependencies:
 
-Calibre Index uses your Dropbox app's public app key at launch time; it does not use or require the app secret.
+```shell
+flutter pub get
+```
+
+Create and configure your own Dropbox app, then run with its app key:
+
+```shell
+flutter run --dart-define=DROPBOX_APP_KEY=YOUR_APP_KEY
+```
+
+The app key is a public OAuth client identifier and is supplied at compile time. Do not put an app secret or personal access token in the source code. Builds without `DROPBOX_APP_KEY` can run, but cannot connect to Dropbox.
+
+## Configure Dropbox
 
 1. Open the [Dropbox App Console](https://www.dropbox.com/developers/apps) and create an app with **Scoped access**.
-2. Select **Full Dropbox** access so Calibre Index can find a library folder you uploaded to Dropbox.
+2. Choose **Full Dropbox** access so the app can search your Dropbox for Calibre library metadata.
 3. In the app's **Permissions** tab, enable `files.metadata.read` and `files.content.read`, then apply the changes.
-4. In **Settings** → **OAuth 2** → **Redirect URIs**, add this exact URI: `http://localhost:53682/`.
-5. Copy the app key from the **Settings** page. Run the app with your key:
+4. In **Settings** > **OAuth 2** > **Redirect URIs**, register this exact URI:
 
-   ```powershell
-   flutter run --dart-define=DROPBOX_APP_KEY=YOUR_APP_KEY
+   ```text
+   http://localhost:53682/
    ```
 
-   For a release APK, use the same `--dart-define` option with `flutter build apk --release`.
+5. Copy the app key from the app's Settings page. Use it with `--dart-define=DROPBOX_APP_KEY=YOUR_APP_KEY` when running or building the app.
 
-## Upcoming Features:
-  - [ ] Google Drive
-  - [ ] One Drive support
-  - [ ] Sharing books
-  - [ ] Adding filters(tags, authors)
-  
-## Developer Credits:
-  - Prerna Dave 
-  - Ekansh Jain
-  
-Reviews and suggestions for improvement are always welcome and extremely valuable to us.
+Calibre Index uses Dropbox's authorization-code flow with PKCE; an app secret is not required. The redirect URI must match exactly.
 
-Calibre is © Kovid Goyal - calibre-ebook.com
+## Build an Android APK
 
-Dropbox is © Dropbox inc. - dropbox.com
+For a debug APK:
 
+```shell
+flutter build apk --debug --dart-define=DROPBOX_APP_KEY=YOUR_APP_KEY
+```
 
-# License
+For a release APK:
+
+```shell
+flutter build apk --release --dart-define=DROPBOX_APP_KEY=YOUR_APP_KEY
+```
+
+## Credits and license
+
+Calibre Index is based on the original [Calibre Carte project](https://github.com/Exlaza/CalibreCarte) by **Ekansh Jain** and **Prerna Dave**. This repository retains the original MIT license and copyright notices below.
+
+Calibre is copyright Kovid Goyal and its contributors. Dropbox is a trademark of Dropbox, Inc. Neither project sponsors or endorses Calibre Index.
+
+### MIT License
 
 Copyright (c) 2019 Ekansh Jain
 
@@ -64,4 +74,4 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
