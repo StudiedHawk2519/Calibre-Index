@@ -4,9 +4,9 @@ import 'package:calibre_carte/screens/license.dart';
 import 'package:calibre_carte/screens/privacy_policy.dart';
 import 'package:calibre_carte/widgets/settings_screen_widgets/cloud_settings.dart';
 import 'package:calibre_carte/widgets/settings_screen_widgets/cover_size_toggle.dart';
+import 'package:calibre_carte/widgets/settings_screen_widgets/cover_display_settings.dart';
 import 'package:calibre_carte/widgets/settings_screen_widgets/dark_mode_toggle.dart';
 import 'package:calibre_carte/widgets/settings_screen_widgets/directorychange_button.dart';
-import 'package:calibre_carte/widgets/settings_screen_widgets/search_dropdown.dart';
 import 'package:material_ui/material_ui.dart';
 
 class SettingsNew extends StatelessWidget {
@@ -71,21 +71,18 @@ class SettingsNew extends StatelessWidget {
       children: [
         _sectionTitle(context, 'Cloud library'),
         _settingsCard(context, const CloudSettings()),
-        _sectionTitle(context, 'Library preferences'),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
-          child: Text(
-            'Search your library by title, author, or tags.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-        ),
-        _settingsCard(context, const SearchDropdown()),
         _sectionTitle(context, 'Appearance'),
         _settingsCard(context, const DarkMode()),
         const SizedBox(height: 8),
         _settingsCard(context, const CoverSizeToggle()),
+        const SizedBox(height: 8),
+        _settingsCard(context, const CoverTitleToggle()),
+        _sectionTitle(context, 'Library layout'),
+        _settingsCard(context, const GridColumnsSetting()),
+        const SizedBox(height: 8),
+        _settingsCard(context, const CoverCornerRadiusSetting()),
+        const SizedBox(height: 8),
+        _settingsCard(context, const SeriesStackToggle()),
         _sectionTitle(context, 'Downloads'),
         _settingsCard(context, const DirectoryChange()),
         _sectionTitle(context, 'About'),

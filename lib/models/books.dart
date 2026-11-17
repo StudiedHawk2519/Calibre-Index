@@ -5,6 +5,7 @@ class Books {
   String? timestamp;
   String? pubdate;
   num? series_index;
+  String? series;
   String? author_sort;
   String? isbn;
   String? lccn;
@@ -18,6 +19,7 @@ class Books {
       this.timestamp,
       this.pubdate,
       this.series_index,
+      this.series,
       this.author_sort,
       this.isbn,
       this.lccn,

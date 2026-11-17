@@ -12,11 +12,13 @@ class CoolTile extends StatelessWidget {
   final int index;
   final List<Books> books;
   final bool matchOriginalCoverSize;
+  final double coverCornerRadius;
 
   const CoolTile(
     this.index,
     this.books, {
     this.matchOriginalCoverSize = true,
+    this.coverCornerRadius = 20,
   });
 
   void _viewBookDetails(
@@ -75,7 +77,7 @@ class CoolTile extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.all(10),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(coverCornerRadius),
                     child: BookDetailsCoverImage(
                       book.id,
                       book.path,

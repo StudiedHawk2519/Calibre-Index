@@ -7,9 +7,12 @@ This is an independent project. It is not affiliated with or endorsed by the Cal
 ## Features
 
 - **Material 3 design:** adapts to Android's system color palette when available, with light and dark themes.
-- **Search:** find books by title, author, or tags. Choose the active search field in Settings.
+- **Smart search:** search titles, authors, and tags together from one search bar.
 - **Flexible browsing:** switch between grid and list layouts, sort by title or author, and choose ascending or descending order.
-- **Book details:** view metadata and description, move between books, and download or open available formats.
+- **Series support:** author sorting groups series in series-number order; optionally collapse a series into an expandable group.
+- **Personalized covers:** set the grid column count, cover corner rounding, title overlays, and whether covers preserve their original proportions.
+- **Faster browsing:** cover files are cached on the device and decoded-image caching is used when available.
+- **Book details:** view ratings, publication information, the description, and a table of built-in and custom Calibre metadata. Download or open available formats.
 - **Dropbox libraries:** find Calibre libraries in your Dropbox, choose which library to browse, and refresh its metadata.
 - **Offline reading:** save ebook files in a chosen download folder and open them with a compatible app.
 
@@ -43,6 +46,8 @@ Builds without `DROPBOX_APP_KEY` can run, but cannot connect to Dropbox.
 5. Copy the app key from the app's Settings page. Use it with `--dart-define=DROPBOX_APP_KEY=YOUR_APP_KEY` when running or building the app.
 
 Calibre Index uses Dropbox's authorization-code flow with PKCE; an app secret is not required. The redirect URI must match exactly.
+
+Dropbox access tokens are short-lived. The current client may require you to reconnect after a token expires; long-lived background access requires refresh-token support.
 
 ## Build an Android APK
 

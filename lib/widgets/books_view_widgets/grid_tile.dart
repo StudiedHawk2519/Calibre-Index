@@ -12,12 +12,16 @@ class CalibreGridTile extends StatefulWidget {
   final Books book;
   final List<Books> books;
   final bool matchOriginalCoverSize;
+  final bool showTitleOverlay;
+  final double coverCornerRadius;
 
   const CalibreGridTile(
     this.index,
     this.book,
     this.books, {
     this.matchOriginalCoverSize = true,
+    this.showTitleOverlay = true,
+    this.coverCornerRadius = 24,
   });
 
   @override
@@ -54,12 +58,13 @@ class _CalibreGridTileState extends State<CalibreGridTile> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
+    final borderRadius = BorderRadius.circular(widget.coverCornerRadius);
     return Card(
       key: ValueKey(widget.book.id ?? widget.index),
-      margin: const EdgeInsets.all(8),
+      margin: const EdgeInsets.all(6),
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: borderRadius,
       ),
       child: InkWell(
         onTap: () => _viewBookDetails(context),
@@ -74,19 +79,20 @@ class _CalibreGridTileState extends State<CalibreGridTile> {
               fit:
                   widget.matchOriginalCoverSize ? BoxFit.contain : BoxFit.cover,
             ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    scheme.scrim.withValues(alpha: 0.76),
-                  ],
-                  stops: const [0.42, 1],
+            if (widget.showTitleOverlay)
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      scheme.scrim.withValues(alpha: 0.76),
+                    ],
+                    stops: const [0.42, 1],
+                  ),
                 ),
               ),
-            ),
             Positioned(
               top: 12,
               right: 12,
@@ -95,37 +101,38 @@ class _CalibreGridTileState extends State<CalibreGridTile> {
                     DownloadIcon(widget.book.id),
               ),
             ),
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 16,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    widget.book.title ?? 'Untitled',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (widget.book.author_sort?.isNotEmpty == true) ...[
-                    const SizedBox(height: 4),
+            if (widget.showTitleOverlay)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     Text(
-                      widget.book.author_sort!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.88),
+                      widget.book.title ?? 'Untitled',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
                           ),
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    if (widget.book.author_sort?.isNotEmpty == true) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.book.author_sort!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.88),
+                            ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
           ],
         ),
       ),

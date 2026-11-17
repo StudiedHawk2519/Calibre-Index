@@ -12,7 +12,7 @@ class StarRating extends StatelessWidget {
     return SizedBox(
       width: width,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: List.generate(
           5,
           (index) => Icon(

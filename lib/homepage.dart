@@ -54,19 +54,23 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> getLayoutFromPreferences() async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
-    layout = sp.getString('layout') ?? "list";
+    final preferences = await SharedPreferences.getInstance();
+    layout = preferences.getString('layout') ?? 'list';
+    sortOption = preferences.getString('sortOption') ?? 'title';
+    sortDirection = preferences.getString('sortDirection') ?? 'asc';
   }
 
-  Future<void> storeLayout(String value) async {
-    final SharedPreferences sp = await SharedPreferences.getInstance();
-    await sp.setString('layout', value);
+  Future<void> _storeSortPreferences() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString('sortOption', sortOption);
+    await preferences.setString('sortDirection', sortDirection);
   }
 
   Future<void> _toggleLayout() async {
     final nextLayout = layout == 'grid' ? 'list' : 'grid';
     setState(() => layout = nextLayout);
-    await storeLayout(nextLayout);
+    await Provider.of<Update>(context, listen: false)
+        .changeBookLayout(nextLayout);
   }
 
   void showSettings(BuildContext context) {
@@ -130,6 +134,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         sortOption = sortOpt;
                         sortDirection = "asc";
                       });
+                      _storeSortPreferences();
                       Navigator.of(context).pop();
                     },
                   ),
@@ -141,6 +146,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         sortOption = sortOpt;
                         sortDirection = "desc";
                       });
+                      _storeSortPreferences();
                       Navigator.of(context).pop();
                     },
                   ),
@@ -162,7 +168,6 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     final update = Provider.of<Update>(context);
-    final searchFilter = update.searchFilter;
     final colorTheme = Provider.of<ColorTheme>(context);
     final scheme = Theme.of(context).colorScheme;
 
@@ -246,7 +251,7 @@ class _MyHomePageState extends State<MyHomePage> {
             title: _selectedIndex == 0 && update.tokenExists == true
                 ? SearchBar(
                     controller: controller,
-                    hintText: 'Search ${searchFilter ?? 'books'}',
+                    hintText: 'Search titles, authors, or tags',
                     leading: const Icon(Icons.search_rounded),
                     trailing: controller.text.isEmpty
                         ? null
@@ -274,10 +279,13 @@ class _MyHomePageState extends State<MyHomePage> {
                         tooltip: sortDirection == 'asc'
                             ? 'Ascending order'
                             : 'Descending order',
-                        onPressed: () => setState(
-                          () => sortDirection =
-                              sortDirection == 'asc' ? 'desc' : 'asc',
-                        ),
+                        onPressed: () {
+                          setState(
+                            () => sortDirection =
+                                sortDirection == 'asc' ? 'desc' : 'asc',
+                          );
+                          _storeSortPreferences();
+                        },
                         icon: Icon(
                           sortDirection == 'asc'
                               ? Icons.arrow_upward_rounded

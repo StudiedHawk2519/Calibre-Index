@@ -36,7 +36,11 @@ class _BookDetailsCoverImageState extends State<BookDetailsCoverImage> {
     if (!cached && !await cacher.downloadAndCacheImage(relativePath, bookId)) {
       return null;
     }
-    return cacher.returnCachedImagePath(relativePath, bookId);
+    final imagePath = await cacher.returnCachedImagePath(relativePath, bookId);
+    if (mounted) {
+      await precacheImage(FileImage(File(imagePath)), context);
+    }
+    return imagePath;
   }
 
   @override

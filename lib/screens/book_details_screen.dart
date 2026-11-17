@@ -1,6 +1,7 @@
 import 'package:calibre_carte/helpers/authors_provider.dart';
 import 'package:calibre_carte/helpers/book_author_link_provider.dart';
 import 'package:calibre_carte/helpers/book_downloader.dart';
+import 'package:calibre_carte/helpers/book_metadata_provider.dart';
 import 'package:calibre_carte/helpers/book_publisher_link_provider.dart';
 import 'package:calibre_carte/helpers/book_rating_link_provider.dart';
 import 'package:calibre_carte/helpers/comments_provider.dart';
@@ -15,6 +16,7 @@ import 'package:calibre_carte/providers/color_theme_provider.dart';
 import 'package:calibre_carte/providers/update_provider.dart';
 import 'package:calibre_carte/widgets/details_screen_widgets/details_lefttile.dart';
 import 'package:calibre_carte/widgets/details_screen_widgets/details_sidebar.dart';
+import 'package:calibre_carte/widgets/book_details_cover_image.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -44,6 +46,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   late Future<bool> mySecondFuture;
   List<Map<String, String>> dataFormatsFileNameMap = [];
   Publishers? publishers;
+  Map<String, String> allMetadata = {};
 
   Future<bool> checkIfLocalCopyExists() async {
     List<Data> dataList = await DataProvider.getDataByBookID(widget.bookId);
@@ -109,6 +112,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     rating = await BooksRatingLinkProvider.getRatingByBookID(widget.bookId);
     publishers =
         await BooksPublisherLinkProvider.getPublisherByBookID(widget.bookId);
+    allMetadata = await BookMetadataProvider.getMetadataForBook(widget.bookId);
   }
 
   @override
@@ -140,6 +144,11 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   Widget description() {
     final scheme = Theme.of(context).colorScheme;
     final update = Provider.of<Update>(context);
+    final size = MediaQuery.of(context).size;
+    final gridCellWidth = (size.width - 16) / update.gridColumns;
+    final coverWidth = update.bookLayout == 'list' ? 83.0 : gridCellWidth - 12;
+    final coverHeight =
+        update.bookLayout == 'list' ? 124.0 : gridCellWidth * 1.5 - 12;
     return MediaQuery(
       data: MediaQuery.of(context)
           .copyWith(textScaler: TextScaler.linear(textScaleFactor(context))),
@@ -148,16 +157,34 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(update.coverCornerRadius),
+                  child: BookDetailsCoverImage(
+                    widget.bookId,
+                    bookDetails.path,
+                    coverHeight,
+                    coverWidth,
+                    fit: update.matchOriginalCoverSize
+                        ? BoxFit.contain
+                        : BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: rightTile(coverHeight),
+                ),
+              ],
+            ),
             DetailsLeftTile(
               publishers: publishers,
               rating: rating,
-              bookId: widget.bookId,
               bookDetails: bookDetails,
               authorText: authorText,
-              matchOriginalCoverSize: update.matchOriginalCoverSize,
+              onShowAllMetadata: _showAllMetadata,
             ),
-            const SizedBox(height: 8),
-            rightTile(),
             const SizedBox(height: 16),
             Container(
               height: 280,
@@ -206,11 +233,68 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     );
   }
 
-  Widget rightTile() {
+  void _showAllMetadata() {
+    final scheme = Theme.of(context).colorScheme;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('All book metadata'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Table(
+              columnWidths: const {
+                0: FlexColumnWidth(0.85),
+                1: FlexColumnWidth(1.15),
+              },
+              border: TableBorder(
+                horizontalInside: BorderSide(
+                  color: scheme.outlineVariant.withValues(alpha: 0.35),
+                ),
+              ),
+              children: [
+                for (final entry in allMetadata.entries)
+                  TableRow(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 6,
+                        ),
+                        child: Text(
+                          entry.key,
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 6,
+                        ),
+                        child: SelectableText(entry.value),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget rightTile(double coverHeight) {
     return FutureBuilder<bool>(
       future: mySecondFuture,
       builder: (context, snapshot) {
         return DetailsSidebar(
+          height: coverHeight,
           bookDetails: bookDetails,
           bookId: widget.bookId,
           dataFormatsFileNameMap: dataFormatsFileNameMap,

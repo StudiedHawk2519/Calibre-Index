@@ -28,8 +28,12 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool? tokenExists;
-  String? searchFilter;
   bool matchOriginalCoverSize = true;
+  bool showCoverTitles = true;
+  int gridColumns = 2;
+  double coverCornerRadius = 24;
+  bool stackSeries = false;
+  String bookLayout = 'list';
   Future? myFuture;
   bool darkMode = false;
   ColorScheme? lightDynamicScheme;
@@ -39,8 +43,12 @@ class _MyAppState extends State<MyApp> {
     SharedPreferences sp = await SharedPreferences.getInstance();
     darkMode = sp.getBool('darkMode') ?? false;
     tokenExists = sp.containsKey('token');
-    searchFilter = sp.getString('searchFilter') ?? 'title';
     matchOriginalCoverSize = sp.getBool('matchOriginalCoverSize') ?? true;
+    showCoverTitles = sp.getBool('showCoverTitles') ?? true;
+    gridColumns = (sp.getInt('gridColumns') ?? 2).clamp(2, 5).toInt();
+    coverCornerRadius = (sp.getDouble('coverCornerRadius') ?? 24).clamp(0, 40);
+    stackSeries = sp.getBool('stackSeries') ?? false;
+    bookLayout = sp.getString('layout') ?? 'list';
     if (Platform.isAndroid) {
       try {
         final corePalette = await DynamicColorPlugin.getCorePalette();
@@ -86,8 +94,12 @@ class _MyAppState extends State<MyApp> {
               ChangeNotifierProvider(
                 create: (_) => Update(
                   tokenExists,
-                  searchFilter,
                   matchOriginalCoverSize: matchOriginalCoverSize,
+                  showCoverTitles: showCoverTitles,
+                  gridColumns: gridColumns,
+                  coverCornerRadius: coverCornerRadius,
+                  stackSeries: stackSeries,
+                  bookLayout: bookLayout,
                 ),
               ),
               ChangeNotifierProvider(

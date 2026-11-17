@@ -6,7 +6,9 @@ import 'package:calibre_carte/widgets/books_view_widgets/books_list_view.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:calibre_carte/helpers/authors_provider.dart';
 import 'package:calibre_carte/helpers/books_provider.dart';
+import 'package:calibre_carte/helpers/book_sort.dart';
 import 'package:calibre_carte/helpers/tags_provider.dart';
+import 'package:calibre_carte/helpers/series_provider.dart';
 import 'package:calibre_carte/models/authors.dart';
 import 'package:calibre_carte/models/books.dart';
 
@@ -30,6 +32,7 @@ class _BooksViewState extends State<BooksView> {
   Future<void>? afterSorting;
   List<Books> books = [];
   Map<int, List<String>> tagsByBookId = {};
+  Map<int, String> seriesByBookId = {};
 
   @override
   void initState() {
@@ -45,6 +48,7 @@ class _BooksViewState extends State<BooksView> {
     if (widget.update.shouldDoUpdate == true) {
       afterSorting = _loadBooksAndSort();
       widget.update.shouldDoUpdateFalse();
+      return;
     }
     if (oldWidget.sortOption == widget.sortOption &&
         oldWidget.sortDirection == widget.sortDirection) {
@@ -59,23 +63,14 @@ class _BooksViewState extends State<BooksView> {
   }
 
   Future<void> sortBooks() async {
-    if (widget.sortOption == 'author') {
-      books.sort((a, b) => (a.author_sort ?? '')
-          .toLowerCase()
-          .compareTo((b.author_sort ?? '').toLowerCase()));
-    } else if (widget.sortOption == 'title') {
-      books.sort((a, b) => (a.title ?? '')
-          .toLowerCase()
-          .compareTo((b.title ?? '').toLowerCase()));
-    } else {
-      books.sort((a, b) => (a.title ?? '')
-          .toLowerCase()
-          .compareTo((b.title ?? '').toLowerCase()));
-    }
-
-    if (widget.sortDirection == 'desc') {
-      books = books.reversed.toList();
-    }
+    books.sort(
+      (a, b) => compareBooks(
+        a,
+        b,
+        sortOption: widget.sortOption,
+        sortDirection: widget.sortDirection,
+      ),
+    );
   }
 
   //aggregates all the data to display
@@ -101,6 +96,10 @@ class _BooksViewState extends State<BooksView> {
     final bookIds =
         books.map((book) => book.id).whereType<int>().toList(growable: false);
     tagsByBookId = await TagsProvider.getTagNamesByBookIds(bookIds);
+    seriesByBookId = await SeriesProvider.getNamesByBookIds(bookIds);
+    for (final book in books) {
+      book.series = seriesByBookId[book.id];
+    }
   }
 
   @override

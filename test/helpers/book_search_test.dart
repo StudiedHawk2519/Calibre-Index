@@ -16,7 +16,6 @@ void main() {
     expect(
       matchesBookSearch(
         book,
-        searchFilter: 'title',
         query: 'ANGRY PLANET',
         tagsByBookId: tags,
       ),
@@ -25,7 +24,6 @@ void main() {
     expect(
       matchesBookSearch(
         book,
-        searchFilter: 'author',
         query: 'becky',
         tagsByBookId: tags,
       ),
@@ -37,7 +35,6 @@ void main() {
     expect(
       matchesBookSearch(
         book,
-        searchFilter: 'tags',
         query: 'space',
         tagsByBookId: tags,
       ),
@@ -46,7 +43,6 @@ void main() {
     expect(
       matchesBookSearch(
         book,
-        searchFilter: 'tags',
         query: 'history',
         tagsByBookId: tags,
       ),

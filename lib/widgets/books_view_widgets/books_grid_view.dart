@@ -1,4 +1,5 @@
 import 'package:calibre_carte/helpers/book_search.dart';
+import 'package:calibre_carte/models/book_display_group.dart';
 import 'package:calibre_carte/models/books.dart';
 import 'package:calibre_carte/providers/update_provider.dart';
 import 'package:calibre_carte/widgets/books_view_widgets/grid_tile.dart';
@@ -12,19 +13,44 @@ class BooksGridView extends StatelessWidget {
 
   BooksGridView(this.filter, this.books, this.tagsByBookId);
 
-  Widget scrollGrid(List<Widget> children, BuildContext context) {
+  Widget scrollGrid(List<Widget> children, int columns) {
     return CustomScrollView(
       primary: false,
       slivers: <Widget>[
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+          padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
           sliver: SliverGrid.count(
             childAspectRatio: 2 / 3,
-            crossAxisCount: 2,
-//            mainAxisSpacing: 5.0,
+            crossAxisCount: columns,
             children: children,
           ),
         )
+      ],
+    );
+  }
+
+  Widget _buildGrid(
+    List<Books> visibleBooks,
+    Update update, {
+    bool shrinkWrap = false,
+  }) {
+    return GridView.count(
+      crossAxisCount: update.gridColumns,
+      childAspectRatio: 2 / 3,
+      shrinkWrap: shrinkWrap,
+      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
+      padding:
+          shrinkWrap ? EdgeInsets.zero : const EdgeInsets.fromLTRB(8, 16, 8, 8),
+      children: [
+        for (var index = 0; index < visibleBooks.length; index++)
+          CalibreGridTile(
+            index,
+            visibleBooks[index],
+            visibleBooks,
+            matchOriginalCoverSize: update.matchOriginalCoverSize,
+            showTitleOverlay: update.showCoverTitles,
+            coverCornerRadius: update.coverCornerRadius,
+          ),
       ],
     );
   }
@@ -36,27 +62,40 @@ class BooksGridView extends StatelessWidget {
         .where(
           (book) => matchesBookSearch(
             book,
-            searchFilter: update.searchFilter,
             query: filter,
             tagsByBookId: tagsByBookId,
           ),
         )
         .toList();
 
-    return scrollGrid(
-        filteredBooks
-            .asMap()
-            .map((index, book) => MapEntry(
-                  index,
-                  CalibreGridTile(
-                    index,
-                    book,
-                    filteredBooks,
-                    matchOriginalCoverSize: update.matchOriginalCoverSize,
-                  ),
-                ))
-            .values
-            .toList(),
-        context);
+    if (!update.stackSeries) {
+      return _buildGrid(filteredBooks, update);
+    }
+
+    final groups = groupBooksBySeries(filteredBooks);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
+      children: [
+        for (final group in groups)
+          if (group.isSeries)
+            Card(
+              clipBehavior: Clip.antiAlias,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: ExpansionTile(
+                leading: const Icon(Icons.library_books_rounded),
+                title: Text(group.seriesName!),
+                subtitle: Text(
+                  '${group.books.length} books'
+                  '${group.author?.isNotEmpty == true ? ' · ${group.author}' : ''}',
+                ),
+                children: [_buildGrid(group.books, update, shrinkWrap: true)],
+              ),
+            )
+          else
+            _buildGrid(group.books, update, shrinkWrap: true),
+      ],
+    );
   }
 }
