@@ -42,6 +42,7 @@ class _MyAppState extends State<MyApp> {
   Future<void> getTokenAndSearchFromPreferences() async {
     SharedPreferences sp = await SharedPreferences.getInstance();
     darkMode = sp.getBool('darkMode') ?? false;
+    if (mounted) setState(() {});
     tokenExists = sp.containsKey('token');
     matchOriginalCoverSize = sp.getBool('matchOriginalCoverSize') ?? true;
     showCoverTitles = sp.getBool('showCoverTitles') ?? true;
@@ -131,7 +132,7 @@ class _MyAppState extends State<MyApp> {
         } else {
           final splashScheme = ColorScheme.fromSeed(
             seedColor: const Color(0xFF7351A6),
-            brightness: Brightness.light,
+            brightness: darkMode ? Brightness.dark : Brightness.light,
             dynamicSchemeVariant: DynamicSchemeVariant.tonalSpot,
           );
           final splashTheme = ThemeData(

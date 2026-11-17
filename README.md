@@ -9,12 +9,12 @@ This is an independent project. It is not affiliated with or endorsed by the Cal
 - **Material 3 design:** adapts to Android's system color palette when available, with light and dark themes.
 - **Smart search:** search titles, authors, and tags together from one search bar.
 - **Flexible browsing:** switch between grid and list layouts, sort by title or author, and choose ascending or descending order.
-- **Series support:** author sorting groups series in series-number order; optionally collapse a series into an expandable group.
+- **Series support:** author sorting groups series in series-number order; optionally show each series as an overlapping-cover stack in the grid or list, expandable inline.
 - **Personalized covers:** set the grid column count, cover corner rounding, title overlays, and whether covers preserve their original proportions.
 - **Faster browsing:** cover files are cached on the device and decoded-image caching is used when available.
 - **Book details:** view ratings, publication information, the description, and a table of built-in and custom Calibre metadata. Download or open available formats.
 - **Dropbox libraries:** find Calibre libraries in your Dropbox, choose which library to browse, and refresh its metadata.
-- **Offline reading:** save ebook files in a chosen download folder and open them with a compatible app.
+- **Offline reading:** choose a download folder, save ebook files for offline access, and open them with a compatible app.
 
 ## Run locally
 

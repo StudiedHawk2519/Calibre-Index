@@ -1,142 +1,212 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:calibre_carte/helpers/book_downloader.dart';
-import 'package:calibre_carte/homepage.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 
 class DownloadingProgress extends StatefulWidget {
   final String? relativePath;
   final String fileName;
-  final BuildContext oldContext;
   final VoidCallback logout;
 
-  DownloadingProgress(
+  const DownloadingProgress(
     this.relativePath,
     this.fileName,
-    this.oldContext,
     this.logout, {
     super.key,
   });
 
   @override
-  _DownloadingProgressState createState() => _DownloadingProgressState();
+  State<DownloadingProgress> createState() => _DownloadingProgressState();
 }
 
 class _DownloadingProgressState extends State<DownloadingProgress> {
-  double? _progress = 0;
-  final String url = 'https://content.dropboxapi.com/2/files/download';
-  final CancelToken cancelToken = CancelToken();
-
-  Future<int> downloadFile() async {
-    final downloader = BookDownloader();
-    final token = await downloader.getTokenFromPreferences();
-    final basePath = await downloader.getSelectedLibPathFromSharedPrefs();
-    final absPath = '$basePath${widget.relativePath!}/${widget.fileName}';
-    final savePath =
-        await downloader.returnFileDirectoryExternal(widget.fileName);
-
-    final headers = {
-      'Authorization': 'Bearer $token',
-      'Dropbox-API-Arg': jsonEncode({'path': absPath}),
-    };
-
-    try {
-      await Dio().download(
-        url,
-        savePath,
-        options: Options(headers: headers),
-        cancelToken: cancelToken,
-        onReceiveProgress: (received, total) {
-          if (!mounted) return;
-          setState(() {
-            _progress = total > 0
-                ? (received / total).clamp(0.0, 1.0).toDouble()
-                : null;
-          });
-        },
-      );
-      return 0;
-    } on DioException catch (e) {
-      return e.response?.statusCode ?? -1;
-    }
-  }
-
-  void _cancelDownload() {
-    cancelToken.cancel("cancelled");
-  }
-
-  Future<void> deleteToken() async {
-    SharedPreferences pref = await SharedPreferences.getInstance();
-    pref.remove('token');
-  }
+  double? _progress;
+  final CancelToken _cancelToken = CancelToken();
+  bool _cancelRequested = false;
+  bool _saving = false;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    downloadFile().then((value) {
-      if (!mounted) return;
-      if (value == 401) {
-        widget.logout();
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-          return MyHomePage();
-        }));
-      } else if (value == 0) {
-        Navigator.of(context).pop("Download Finished!");
-      } else {
-        Navigator.pop(context, "Download Failed.");
-      }
-    });
+    _downloadFile();
   }
 
-  textScaleFactor(BuildContext context) {
-    if (MediaQuery.of(context).size.height > 610) {
-      return MediaQuery.of(context).textScaler.scale(1).clamp(0.6, 1.0);
-    } else {
-      return MediaQuery.of(context).textScaler.scale(1).clamp(0.6, 0.85);
+  Future<void> _downloadFile() async {
+    String? partialPath;
+    try {
+      final downloader = BookDownloader();
+      final token = await downloader.getTokenFromPreferences();
+      final libraryPath = await downloader.getSelectedLibPathFromSharedPrefs();
+      final dropboxPath = BookDownloader.buildDropboxFilePath(
+        libraryPath,
+        widget.relativePath,
+        widget.fileName,
+      );
+      final temporaryDirectory = await getTemporaryDirectory();
+      partialPath = path.join(
+        temporaryDirectory.path,
+        '${DateTime.now().microsecondsSinceEpoch}_${path.basename(widget.fileName)}',
+      );
+      await Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(minutes: 5),
+        ),
+      ).download(
+        'https://content.dropboxapi.com/2/files/download',
+        partialPath,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Dropbox-API-Arg': jsonEncode({'path': dropboxPath}),
+          },
+        ),
+        cancelToken: _cancelToken,
+        onReceiveProgress: (received, total) {
+          if (!mounted) return;
+          setState(() {
+            _progress =
+                total > 0 ? (received / total).clamp(0.0, 1.0).toDouble() : null;
+          });
+        },
+      );
+
+      if (mounted) {
+        setState(() {
+          _saving = true;
+          _progress = null;
+        });
+      }
+      await downloader.saveDownloadedFile(
+        partialPath,
+        widget.fileName,
+        mimeType: _mimeType(widget.fileName),
+      );
+      await _removePartialFile(partialPath);
+      _finish('Download Finished!');
+    } on DioException catch (error) {
+      await _removePartialFile(partialPath);
+      final statusCode = error.response?.statusCode;
+      if (statusCode == 401) {
+        widget.logout();
+        _finish('Dropbox session expired. Reconnect in Settings and try again.');
+      } else if (CancelToken.isCancel(error)) {
+        _finish('Download canceled.');
+      } else {
+        _finish(_formatDropboxError(error));
+      }
+    } on Exception catch (error, stackTrace) {
+      await _removePartialFile(partialPath);
+      debugPrint('Could not download book: $error\n$stackTrace');
+      _finish('Download failed: $error');
     }
+  }
+
+  String _mimeType(String fileName) {
+    switch (path.extension(fileName).toLowerCase()) {
+      case '.epub':
+        return 'application/epub+zip';
+      case '.pdf':
+        return 'application/pdf';
+      case '.mobi':
+        return 'application/x-mobipocket-ebook';
+      case '.azw':
+      case '.azw3':
+        return 'application/vnd.amazon.ebook';
+      case '.txt':
+        return 'text/plain';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
+  String _formatDropboxError(DioException error) {
+    final statusCode = error.response?.statusCode;
+    final responseData = error.response?.data;
+    if (responseData is Map<String, dynamic>) {
+      final message =
+          responseData['error_summary'] ?? responseData['error_description'];
+      if (message != null) return 'Dropbox download failed: $message';
+    } else if (responseData is String && responseData.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(responseData);
+        if (decoded is Map<String, dynamic>) {
+          final message =
+              decoded['error_summary'] ?? decoded['error_description'];
+          if (message != null) return 'Dropbox download failed: $message';
+        }
+      } on FormatException {
+        // Fall through to the HTTP status message.
+      }
+    }
+    if (statusCode != null) {
+      return 'Dropbox download failed (HTTP $statusCode).';
+    }
+    return 'Download failed: ${error.message ?? 'Could not reach Dropbox.'}';
+  }
+
+  Future<void> _removePartialFile(String? filePath) async {
+    if (filePath == null) return;
+    try {
+      final file = File(filePath);
+      if (await file.exists()) await file.delete();
+    } on FileSystemException catch (error) {
+      debugPrint('Could not remove incomplete download: $error');
+    }
+  }
+
+  void _finish(String result) {
+    if (mounted) Navigator.of(context).pop(result);
+  }
+
+  void _cancelDownload() {
+    if (_cancelRequested || _saving) return;
+    setState(() => _cancelRequested = true);
+    _cancelToken.cancel('Download canceled by user.');
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return MediaQuery(
-      data: MediaQuery.of(context)
-          .copyWith(textScaler: TextScaler.linear(textScaleFactor(context))),
-      child: PopScope(
-        canPop: false,
-        child: AlertDialog(
-          backgroundColor: scheme.surfaceContainerHigh,
-          title: const Text('Downloading book'),
-          content: SizedBox(
-            width: 280,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _progress == null
-                      ? 'Preparing download…'
-                      : '${(_progress! * 100).round()}% downloaded',
-                ),
-                const SizedBox(height: 16),
-                LinearProgressIndicator(
-                  value: _progress,
-                  minHeight: 8,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ],
-            ),
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        backgroundColor: scheme.surfaceContainerHigh,
+        title: const Text('Downloading book'),
+        content: SizedBox(
+          width: 280,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _cancelRequested
+                    ? 'Canceling download…'
+                    : _saving
+                        ? 'Saving book to the selected folder…'
+                    : _progress == null
+                        ? 'Preparing download…'
+                        : '${(_progress! * 100).round()}% downloaded',
+              ),
+              const SizedBox(height: 16),
+              LinearProgressIndicator(
+                value: _progress,
+                minHeight: 8,
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: _cancelDownload,
-              child: const Text('Cancel'),
-            ),
-          ],
         ),
+        actions: [
+          TextButton(
+            onPressed: _cancelRequested || _saving ? null : _cancelDownload,
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
     );
   }

@@ -30,6 +30,20 @@ class DetailsSidebar extends StatelessWidget {
     checkCopies();
   }
 
+  Future<void> _startDownload(BuildContext context) async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (_) => SelectFormatDialog(bookId, bookDetails.path),
+    );
+    if (!context.mounted) return;
+    checkCopies();
+    if (result != null && result != 'Download Finished!') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result)),
+      );
+    }
+  }
+
   Widget _action(
     BuildContext context, {
     required IconData icon,
@@ -90,12 +104,7 @@ class DetailsSidebar extends StatelessWidget {
             label: 'Download',
             background: scheme.primaryContainer,
             foreground: scheme.onPrimaryContainer,
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (_) => SelectFormatDialog(bookId, bookDetails.path),
-              ).then((_) => checkCopies());
-            },
+            onTap: () => _startDownload(context),
           ),
           _action(
             context,

@@ -12,6 +12,9 @@ class BookDisplayGroup {
   });
 
   bool get isSeries => seriesName != null;
+
+  String get seriesKey =>
+      '${author?.toLowerCase() ?? ''}\u0000${seriesName?.toLowerCase() ?? ''}';
 }
 
 List<BookDisplayGroup> groupBooksBySeries(List<Books> books) {
@@ -32,7 +35,8 @@ List<BookDisplayGroup> groupBooksBySeries(List<Books> books) {
       continue;
     }
 
-    final key = '${author?.toLowerCase() ?? ''}\u0000${seriesName.toLowerCase()}';
+    final key =
+        '${author?.toLowerCase() ?? ''}\u0000${seriesName.toLowerCase()}';
     final group = seriesGroups.putIfAbsent(
       key,
       () {

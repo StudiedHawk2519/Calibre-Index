@@ -2,8 +2,8 @@ import 'package:calibre_carte/helpers/book_downloader.dart';
 import 'package:calibre_carte/helpers/data_provider.dart';
 import 'package:calibre_carte/models/data.dart';
 import 'package:calibre_carte/providers/color_theme_provider.dart';
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:open_file/open_file.dart';
 import 'package:provider/provider.dart';
 
 class OpenFormatDialog extends StatefulWidget {
@@ -37,7 +37,7 @@ class _OpenFormatDialogState extends State<OpenFormatDialog> {
     BookDownloader bd = BookDownloader();
     for (int i = 0; i < dataFormatsFileNameMap.length; i++) {
       bool exists = await bd
-          .checkIfDownloadedFileExists(dataFormatsFileNameMap[i]["name"]);
+          .checkIfDownloadedFileExists(dataFormatsFileNameMap[i]["name"]!);
       if (exists) {
         filteredDataFormatsFileNameMap.add(dataFormatsFileNameMap[i]);
       }
@@ -48,17 +48,22 @@ class _OpenFormatDialogState extends State<OpenFormatDialog> {
     });
   }
 
-  Future<void> bookOpen(fileName) async {
-    BookDownloader bd = BookDownloader();
-    String fileDirectory = await bd.returnFileDirectoryExternal(fileName);
-
-    final OpenResult result = await OpenFile.open(fileDirectory);
-    if (result.type == ResultType.noAppToOpen) {
-//      print("No application found to open the file");
-      Navigator.pop(context);
-      ScaffoldMessenger.of(widget.oldContext).showSnackBar(SnackBar(
-        content: Text("No compatible app found."),
-      ));
+  Future<void> bookOpen(String fileName) async {
+    try {
+      final opened = await BookDownloader().openDownloadedFile(fileName);
+      if (!opened && mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(widget.oldContext).showSnackBar(
+          const SnackBar(content: Text('No compatible app found.')),
+        );
+      }
+    } on PlatformException catch (error) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(widget.oldContext).showSnackBar(
+          SnackBar(content: Text('Could not open book: ${error.message}')),
+        );
+      }
     }
   }
 
@@ -99,7 +104,7 @@ class _OpenFormatDialogState extends State<OpenFormatDialog> {
                     child: Text(element["format"]!,
                         style: TextStyle(color: colorTheme.headerText)),
                     onPressed: () {
-                      bookOpen(element["name"]);
+                      bookOpen(element["name"]!);
                     },
                   );
                 }).toList() as List<Widget>,

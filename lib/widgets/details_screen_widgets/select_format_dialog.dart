@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:calibre_carte/helpers/cache_invalidator.dart';
 import 'package:calibre_carte/helpers/data_provider.dart';
 import 'package:calibre_carte/models/data.dart';
@@ -27,7 +25,7 @@ class _SelectFormatDialogState extends State<SelectFormatDialog> {
 
   Future<void> deleteToken() async {
     SharedPreferences pref = await SharedPreferences.getInstance();
-    pref.remove('token');
+    await pref.remove('token');
   }
 
   Future<void> getBookDataFormats() async {
@@ -45,14 +43,16 @@ class _SelectFormatDialogState extends State<SelectFormatDialog> {
   }
 
   Future<void> bookDownloader(
-      fileName, BuildContext context, VoidCallback logout) async {
-    final result = await showDialog(
-        context: context,
-        builder: (_) {
-          return DownloadingProgress(
-              widget.relativePath, fileName, context, logout);
-        });
-    Navigator.of(context).pop(result);
+    String fileName,
+    BuildContext context,
+    VoidCallback logout,
+  ) async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (_) =>
+          DownloadingProgress(widget.relativePath, fileName, logout),
+    );
+    if (context.mounted) Navigator.of(context).pop(result);
   }
 
   @override
@@ -60,16 +60,6 @@ class _SelectFormatDialogState extends State<SelectFormatDialog> {
     // TODO: implement initState
     super.initState();
     myFuture = getBookDataFormats();
-  }
-
-  Future<bool> checkNet() async {
-    try {
-      await InternetAddress.lookup('www.google.com');
-//      print("internet is $result");
-      return true;
-    } on SocketException catch (_) {
-      return false;
-    }
   }
 
   textScaleFactor(BuildContext context) {
@@ -100,22 +90,14 @@ class _SelectFormatDialogState extends State<SelectFormatDialog> {
                   return TextButton(
                     child: Text(element["format"]!,
                         style: TextStyle(color: colorTheme.headerText)),
-                    onPressed: () {
-                      checkNet().then((val) {
-                        if (val == true) {
-                          bookDownloader(element["name"], context, () {
-                            deleteToken();
-                            CacheInvalidator.invalidateImagesCache();
-                            CacheInvalidator.invalidateDatabaseCache();
-                            setState(() {
-                              update.changeTokenState(false);
-                              update.updateFlagState(true);
-                            });
-                          });
-                        } else {
-//                          print("came here");
-                          Navigator.of(context).pop("No internet");
-                        }
+                    onPressed: () async {
+                      await bookDownloader(element["name"]!, context, () async {
+                        await deleteToken();
+                        await CacheInvalidator.invalidateImagesCache();
+                        await CacheInvalidator.invalidateDatabaseCache();
+                        if (!mounted) return;
+                        update.changeTokenState(false);
+                        update.updateFlagState(true);
                       });
                     },
                   );

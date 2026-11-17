@@ -142,7 +142,6 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   Widget description() {
-    final scheme = Theme.of(context).colorScheme;
     final update = Provider.of<Update>(context);
     final size = MediaQuery.of(context).size;
     final gridCellWidth = (size.width - 16) / update.gridColumns;
@@ -186,47 +185,26 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               onShowAllMetadata: _showAllMetadata,
             ),
             const SizedBox(height: 16),
-            Container(
-              height: 280,
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(28),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                    child: Text(
-                      'Description',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ),
-                  Expanded(
-                    child: bookComments?.text?.isNotEmpty == true
-                        ? SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                            child: Html(
-                              data: bookComments!.text,
-                              style: {
-                                'body': Style(
-                                  fontSize: FontSize(16),
-                                  color: scheme.onSurface,
-                                ),
-                              },
-                            ),
-                          )
-                        : Center(
-                            child: Text(
-                              'No description available.',
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                          ),
-                  ),
-                ],
-              ),
+            Text(
+              'Description',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
+            const SizedBox(height: 8),
+            if (bookComments?.text?.isNotEmpty == true)
+              Html(
+                data: bookComments!.text,
+                style: {
+                  'body': Style(
+                    fontSize: FontSize(16),
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                },
+              )
+            else
+              Text(
+                'No description available.',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
           ],
         ),
       ),

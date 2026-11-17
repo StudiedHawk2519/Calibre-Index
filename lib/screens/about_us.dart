@@ -1,63 +1,63 @@
-import 'package:calibre_carte/providers/color_theme_provider.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AboutUs extends StatelessWidget {
+  const AboutUs({super.key});
+
+  Future<void> _openGithub(BuildContext context) async {
+    final uri = Uri.https('github.com', '/StudiedHawk2519');
+    try {
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
+          context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open GitHub.')),
+        );
+      }
+    } on Exception catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open GitHub: $error')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    ColorTheme colorTheme = Provider.of(context);
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: colorTheme.descriptionBackground,
       appBar: AppBar(title: const Text('About Calibre Index')),
-      body: Container(
-        margin: EdgeInsets.fromLTRB(20, 20, 10, 10),
-        child: SingleChildScrollView(
-          child: Column(
-            children: <Widget>[
-              Container(
-//                decoration: BoxDecoration(
-//                    border: Border.all(width: 2, color: Color(0xffFED962))),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      "Authors: ",
-                      style: TextStyle(color: Colors.grey, fontSize: 25),
-                    ),
-                    SizedBox(
-                      height: 20,
-                    ),
-                    Text("Ekansh Jain, Prerna Dave",
-                        style: TextStyle(
-                            color: colorTheme.headerText, fontSize: 20))
-                  ],
-                ),
-              ),
-              SizedBox(
-                height: 40,
-              ),
-              Container(
-//                decoration: BoxDecoration(
-//                    border: Border.all(width: 2, color: Color(0xffFED962))),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      "Contact: ",
-                      style: TextStyle(color: Colors.grey, fontSize: 25),
-                    ),
-                    SizedBox(
-                      height: 20,
-                    ),
-                    Text("calibre.carte@gmail.com",
-                        style: TextStyle(
-                            color: colorTheme.headerText, fontSize: 20))
-                  ],
-                ),
-              )
-            ],
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            color: scheme.surfaceContainerHigh,
+            child: const ListTile(
+              leading: Icon(Icons.person_rounded),
+              title: Text('Author'),
+              subtitle: Text('StudiedHawk2519'),
+            ),
           ),
-        ),
+          const SizedBox(height: 16),
+          Text(
+            'Contacts',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: scheme.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            color: scheme.surfaceContainerHigh,
+            child: ListTile(
+              leading: const Icon(Icons.code_rounded),
+              title: const Text('GitHub'),
+              subtitle: const Text('github.com/StudiedHawk2519'),
+              trailing: const Icon(Icons.open_in_new_rounded),
+              onTap: () => _openGithub(context),
+            ),
+          ),
+        ],
       ),
     );
   }

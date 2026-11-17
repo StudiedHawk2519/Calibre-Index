@@ -251,7 +251,7 @@ class _MyHomePageState extends State<MyHomePage> {
             title: _selectedIndex == 0 && update.tokenExists == true
                 ? SearchBar(
                     controller: controller,
-                    hintText: 'Search titles, authors, or tags',
+                    hintText: 'Search',
                     leading: const Icon(Icons.search_rounded),
                     trailing: controller.text.isEmpty
                         ? null
