@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:calibre_carte/helpers/dropbox_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
@@ -20,12 +21,7 @@ class BookDownloader {
   }
 
   Future<String> getTokenFromPreferences() async {
-    final preferences = await SharedPreferences.getInstance();
-    final token = preferences.getString('token');
-    if (token == null || token.isEmpty) {
-      throw StateError('Connect Dropbox before downloading a book.');
-    }
-    return token;
+    return DropboxAuth.getValidAccessToken();
   }
 
   Future<String> getSelectedLibPathFromSharedPrefs() async {
@@ -119,7 +115,8 @@ class BookDownloader {
         },
       );
       if (saved != true) {
-        throw StateError('The selected folder did not save the downloaded book.');
+        throw StateError(
+            'The selected folder did not save the downloaded book.');
       }
       invalidateDownloadDirectoryCache();
       return;

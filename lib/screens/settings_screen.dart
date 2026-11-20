@@ -1,4 +1,5 @@
 import 'package:calibre_carte/screens/about_us.dart';
+import 'package:calibre_carte/screens/custom_metadata_settings.dart';
 import 'package:calibre_carte/screens/instructions_screen.dart';
 import 'package:calibre_carte/screens/license.dart';
 import 'package:calibre_carte/screens/privacy_policy.dart';
@@ -7,6 +8,7 @@ import 'package:calibre_carte/widgets/settings_screen_widgets/cover_size_toggle.
 import 'package:calibre_carte/widgets/settings_screen_widgets/cover_display_settings.dart';
 import 'package:calibre_carte/widgets/settings_screen_widgets/dark_mode_toggle.dart';
 import 'package:calibre_carte/widgets/settings_screen_widgets/directorychange_button.dart';
+import 'package:calibre_carte/widgets/settings_screen_widgets/goodreads_links_toggle.dart';
 import 'package:material_ui/material_ui.dart';
 
 class SettingsNew extends StatelessWidget {
@@ -83,6 +85,18 @@ class SettingsNew extends StatelessWidget {
         _settingsCard(context, const CoverCornerRadiusSetting()),
         const SizedBox(height: 8),
         _settingsCard(context, const SeriesStackToggle()),
+        _sectionTitle(context, 'Book details'),
+        _settingsCard(
+          context,
+          _infoTile(
+            context,
+            'Pinned custom metadata',
+            Icons.label_outline_rounded,
+            const CustomMetadataSettings(),
+          ),
+        ),
+        _sectionTitle(context, 'Links'),
+        _settingsCard(context, const GoodreadsLinksToggle()),
         _sectionTitle(context, 'Downloads'),
         _settingsCard(context, const DirectoryChange()),
         _sectionTitle(context, 'About'),

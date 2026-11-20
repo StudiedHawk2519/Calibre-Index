@@ -39,6 +39,7 @@ class _BooksListViewState extends State<BooksListView> {
           widget.books,
           matchOriginalCoverSize: update.matchOriginalCoverSize,
           coverCornerRadius: update.coverCornerRadius,
+          goodreadsLinks: update.goodreadsLinks,
         );
 
     final children = <Widget>[];
@@ -73,7 +74,7 @@ class _BooksListViewState extends State<BooksListView> {
     }
 
     return ListView(
-      padding: const EdgeInsets.only(top: 24, bottom: 8),
+      padding: const EdgeInsets.only(top: 8, bottom: 8),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: children,
     );

@@ -248,6 +248,12 @@ class _MyHomePageState extends State<MyHomePage> {
             .copyWith(textScaler: TextScaler.linear(textScaleFactor(context))),
         child: Scaffold(
           appBar: AppBar(
+            bottom: _selectedIndex == 0 && update.tokenExists == true
+                ? const PreferredSize(
+                    preferredSize: Size.fromHeight(12),
+                    child: SizedBox(height: 12),
+                  )
+                : null,
             title: _selectedIndex == 0 && update.tokenExists == true
                 ? SearchBar(
                     controller: controller,

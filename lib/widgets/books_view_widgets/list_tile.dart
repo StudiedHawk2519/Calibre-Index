@@ -5,6 +5,7 @@ import 'package:calibre_carte/providers/list_tile.dart';
 import 'package:calibre_carte/screens/book_details_screen.dart';
 import 'package:calibre_carte/widgets/book_details_cover_image.dart';
 import 'package:calibre_carte/widgets/download_icon.dart';
+import 'package:calibre_carte/widgets/goodreads_link_text.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -13,12 +14,14 @@ class CoolTile extends StatelessWidget {
   final List<Books> books;
   final bool matchOriginalCoverSize;
   final double coverCornerRadius;
+  final bool goodreadsLinks;
 
   const CoolTile(
     this.index,
     this.books, {
     this.matchOriginalCoverSize = true,
     this.coverCornerRadius = 20,
+    this.goodreadsLinks = false,
   });
 
   void _viewBookDetails(
@@ -96,16 +99,22 @@ class CoolTile extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          book.title ?? 'Untitled',
+                        GoodreadsLinkText(
+                          text: book.title ?? 'Untitled',
+                          query: book.isbn?.isNotEmpty == true
+                              ? book.isbn!
+                              : book.title ?? '',
+                          enabled: goodreadsLinks,
                           style: theme.textTheme.titleMedium,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        Text(
-                          book.author_sort?.isNotEmpty == true
+                        GoodreadsLinkText(
+                          text: book.author_sort?.isNotEmpty == true
                               ? book.author_sort!
                               : 'Unknown author',
+                          query: book.author_sort ?? '',
+                          enabled: goodreadsLinks,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
@@ -113,15 +122,8 @@ class CoolTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            Text(
-                              'CALIBRE LIBRARY',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: scheme.primary,
-                                letterSpacing: 0.8,
-                              ),
-                            ),
                             Consumer<ListTileProvider>(
                               builder: (context, provider, child) =>
                                   DownloadIcon(book.id),

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:calibre_carte/helpers/image_cacher.dart';
@@ -24,29 +25,38 @@ class BookDetailsCoverImage extends StatefulWidget {
 }
 
 class _BookDetailsCoverImageState extends State<BookDetailsCoverImage> {
-  late Future<String?> _imagePath;
+  String? _imagePath;
+  bool _loading = true;
 
-  Future<String?> _loadCover() async {
+  Future<void> _loadCover() async {
     final relativePath = widget.relativePath;
     final bookId = widget.bookId;
-    if (relativePath == null || bookId == null) return null;
+    if (relativePath == null || bookId == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
 
     final cacher = ImageCacher();
-    final cached = await cacher.checkIfCachedFileExists(relativePath, bookId);
-    if (!cached && !await cacher.downloadAndCacheImage(relativePath, bookId)) {
-      return null;
+    if (!await cacher.checkIfCachedFileExists(relativePath, bookId) &&
+        !await cacher.downloadAndCacheImage(relativePath, bookId)) {
+      if (mounted) setState(() => _loading = false);
+      return;
     }
     final imagePath = await cacher.returnCachedImagePath(relativePath, bookId);
     if (mounted) {
-      await precacheImage(FileImage(File(imagePath)), context);
+      setState(() {
+        _imagePath = imagePath;
+        _loading = false;
+      });
     }
-    return imagePath;
   }
 
   @override
   void initState() {
     super.initState();
-    _imagePath = _loadCover();
+    _imagePath = _getInMemoryCoverPath();
+    _loading = _imagePath == null;
+    if (_loading) unawaited(_loadCover());
   }
 
   @override
@@ -54,36 +64,35 @@ class _BookDetailsCoverImageState extends State<BookDetailsCoverImage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.bookId != widget.bookId ||
         oldWidget.relativePath != widget.relativePath) {
-      _imagePath = _loadCover();
+      _imagePath = _getInMemoryCoverPath();
+      _loading = _imagePath == null;
+      if (_loading) unawaited(_loadCover());
     }
+  }
+
+  String? _getInMemoryCoverPath() {
+    final bookId = widget.bookId;
+    final relativePath = widget.relativePath;
+    if (bookId == null || relativePath == null) return null;
+    return ImageCacher.cachedCoverPath(relativePath, bookId);
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String?>(
-      future: _imagePath,
-      builder: (context, snapshot) {
-        final imagePath = snapshot.data;
-        if (snapshot.connectionState == ConnectionState.done &&
-            imagePath != null) {
-          return Image.file(
-            File(imagePath),
-            height: widget.height,
-            width: widget.width,
-            fit: widget.fit,
-            errorBuilder: (context, error, stackTrace) {
-              debugPrint('Could not display cached book cover: $error');
-              return _placeholder();
-            },
-          );
-        }
-        if (snapshot.hasError) {
-          debugPrint('Could not load book cover: ${snapshot.error}');
+    final imagePath = _imagePath;
+    if (imagePath != null) {
+      return Image.file(
+        File(imagePath),
+        height: widget.height,
+        width: widget.width,
+        fit: widget.fit,
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('Could not display cached book cover: $error');
           return _placeholder();
-        }
-        return _placeholder(loading: true);
-      },
-    );
+        },
+      );
+    }
+    return _placeholder(loading: _loading);
   }
 
   Widget _placeholder({bool loading = false}) {

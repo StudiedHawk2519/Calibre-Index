@@ -33,6 +33,8 @@ class _MyAppState extends State<MyApp> {
   int gridColumns = 2;
   double coverCornerRadius = 24;
   bool stackSeries = false;
+  bool goodreadsLinks = false;
+  List<String> pinnedCustomMetadata = [];
   String bookLayout = 'list';
   Future? myFuture;
   bool darkMode = false;
@@ -49,6 +51,8 @@ class _MyAppState extends State<MyApp> {
     gridColumns = (sp.getInt('gridColumns') ?? 2).clamp(2, 5).toInt();
     coverCornerRadius = (sp.getDouble('coverCornerRadius') ?? 24).clamp(0, 40);
     stackSeries = sp.getBool('stackSeries') ?? false;
+    goodreadsLinks = sp.getBool('goodreadsLinks') ?? false;
+    pinnedCustomMetadata = sp.getStringList('pinnedCustomMetadata') ?? [];
     bookLayout = sp.getString('layout') ?? 'list';
     if (Platform.isAndroid) {
       try {
@@ -100,6 +104,8 @@ class _MyAppState extends State<MyApp> {
                   gridColumns: gridColumns,
                   coverCornerRadius: coverCornerRadius,
                   stackSeries: stackSeries,
+                  goodreadsLinks: goodreadsLinks,
+                  pinnedCustomMetadata: pinnedCustomMetadata,
                   bookLayout: bookLayout,
                 ),
               ),

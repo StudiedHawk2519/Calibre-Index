@@ -159,6 +159,26 @@ class BookMetadataProvider {
     return result;
   }
 
+  static Future<List<String>> getCustomColumnNames() async {
+    final database = (await DatabaseHelper.instance.db)!;
+    final table = await database.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type = 'table' "
+      "AND name = 'custom_columns'",
+    );
+    if (table.isEmpty) return [];
+
+    final columns = await database.query('custom_columns');
+    final names = <String>{};
+    for (final column in columns) {
+      final name = column['name']?.toString().trim();
+      final label = column['label']?.toString().trim();
+      final displayName = name?.isNotEmpty == true ? name : label;
+      if (displayName?.isNotEmpty == true) names.add(displayName!);
+    }
+    return names.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  }
+
   static Future<void> _addRelation(
     Database database,
     Map<String, String> result,
@@ -243,7 +263,7 @@ class BookMetadataProvider {
                     [linkedValue],
                   );
                   if (rows.isNotEmpty) {
-                    final value = _displayValue(rows.first['value']);
+                    final value = _displayCustomValue(rows.first['value']);
                     if (value.isNotEmpty) values.add(value);
                   }
                 } else {
@@ -255,7 +275,7 @@ class BookMetadataProvider {
           } else {
             values.addAll(
               links
-                  .map((link) => _displayValue(link['value']))
+                  .map((link) => _displayCustomValue(link['value']))
                   .where((value) => value.isNotEmpty),
             );
           }
@@ -272,7 +292,7 @@ class BookMetadataProvider {
           );
           values.addAll(
             rows
-                .map((row) => _displayValue(row['value']))
+                .map((row) => _displayCustomValue(row['value']))
                 .where((value) => value.isNotEmpty),
           );
         }
@@ -286,6 +306,13 @@ class BookMetadataProvider {
     if (value == null) return '';
     if (value is List<int>) return '';
     return value.toString().trim();
+  }
+
+  static String _displayCustomValue(Object? value) {
+    final displayValue = _displayValue(value);
+    if (displayValue == '1') return 'Yes';
+    if (displayValue == '0') return 'No';
+    return displayValue;
   }
 
   static String _formatBytes(int bytes) {

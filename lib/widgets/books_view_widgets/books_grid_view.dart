@@ -30,6 +30,7 @@ class _BooksGridViewState extends State<BooksGridView> {
       matchOriginalCoverSize: update.matchOriginalCoverSize,
       showTitleOverlay: update.showCoverTitles,
       coverCornerRadius: update.coverCornerRadius,
+      goodreadsLinks: update.goodreadsLinks,
     );
   }
 
@@ -88,7 +89,7 @@ class _BooksGridViewState extends State<BooksGridView> {
     return GridView.count(
       crossAxisCount: update.gridColumns,
       childAspectRatio: 2 / 3,
-      padding: const EdgeInsets.fromLTRB(8, 24, 8, 8),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       children: children,
     );
   }

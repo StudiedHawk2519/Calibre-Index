@@ -1,7 +1,7 @@
 import 'package:calibre_carte/models/books.dart';
-import 'package:calibre_carte/models/publishers.dart';
 import 'package:calibre_carte/models/ratings.dart';
 import 'package:calibre_carte/widgets/details_screen_widgets/rating.dart';
+import 'package:calibre_carte/widgets/goodreads_link_text.dart';
 import 'package:material_ui/material_ui.dart';
 
 class BookDetailsText extends StatelessWidget {
@@ -9,7 +9,8 @@ class BookDetailsText extends StatelessWidget {
   final Books bookDetails;
   final String authorText;
   final Ratings? rating;
-  final Publishers? publishers;
+  final Map<String, String> pinnedMetadata;
+  final bool goodreadsEnabled;
   final VoidCallback onShowAllMetadata;
 
   const BookDetailsText(
@@ -17,15 +18,14 @@ class BookDetailsText extends StatelessWidget {
     this.bookDetails,
     this.authorText,
     this.rating,
-    this.publishers,
+    this.pinnedMetadata,
+    this.goodreadsEnabled,
     this.onShowAllMetadata,
   );
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final publishedDate = bookDetails.pubdate;
-
     return SizedBox(
       width: width,
       child: Padding(
@@ -33,13 +33,19 @@ class BookDetailsText extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              bookDetails.title ?? 'Untitled',
+            GoodreadsLinkText(
+              text: bookDetails.title ?? 'Untitled',
+              query: bookDetails.isbn?.isNotEmpty == true
+                  ? bookDetails.isbn!
+                  : bookDetails.title ?? '',
+              enabled: goodreadsEnabled,
               style: theme.textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
-            Text(
-              authorText.isEmpty ? 'Unknown author' : authorText,
+            GoodreadsLinkText(
+              text: authorText.isEmpty ? 'Unknown author' : authorText,
+              query: authorText,
+              enabled: goodreadsEnabled,
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -53,31 +59,51 @@ class BookDetailsText extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 4,
-              runSpacing: 4,
-              children: [
-                if (publishers?.name != null)
-                  Chip(
-                    avatar: const Icon(Icons.business_rounded, size: 18),
-                    label: Text(publishers!.name!),
-                  ),
-                if (publishedDate != null)
-                  Chip(
-                    avatar: const Icon(Icons.calendar_month_rounded, size: 18),
-                    label: Text(
-                      publishedDate.length >= 10
-                          ? publishedDate.substring(0, 10)
-                          : publishedDate,
+            for (final entry in pinnedMetadata.entries)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: Text(
+                        entry.key,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ),
-                  ),
-                IconButton.filledTonal(
-                  tooltip: 'Show all book metadata',
-                  onPressed: onShowAllMetadata,
-                  icon: const Icon(Icons.table_view_rounded),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          if (entry.value == 'Yes' || entry.value == 'No') ...[
+                            Icon(
+                              entry.value == 'Yes'
+                                  ? Icons.check_circle_outline_rounded
+                                  : Icons.cancel_outlined,
+                              size: 18,
+                              color: entry.value == 'Yes'
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          Expanded(child: Text(entry.value)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.tonalIcon(
+                onPressed: onShowAllMetadata,
+                icon: const Icon(Icons.list_alt_rounded),
+                label: const Text('All metadata'),
+              ),
             ),
           ],
         ),

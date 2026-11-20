@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:calibre_carte/helpers/dropbox_auth.dart';
 import 'package:http/http.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -8,11 +9,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ImageCacher {
   static final Map<String, Future<bool>> _pendingCoverDownloads = {};
+  static final Map<String, String> _readyCoverPaths = {};
 
-  Future<String?> getTokenFromPreferences() async {
-    final preferences = await SharedPreferences.getInstance();
-    return preferences.getString('token');
-  }
+  static String _memoryKey(String relativePath, int bookId) =>
+      '$bookId|$relativePath';
+
+  static String? cachedCoverPath(String relativePath, int bookId) =>
+      _readyCoverPaths[_memoryKey(relativePath, bookId)];
+
+  static void clearMemoryCache() => _readyCoverPaths.clear();
 
   Future<String?> getSelectedLibPathFromSharedPrefs() async {
     final preferences = await SharedPreferences.getInstance();
@@ -69,12 +74,15 @@ class ImageCacher {
   ) async {
     if (relativePath == null || bookId == null) return false;
 
-    final token = await getTokenFromPreferences();
+    final token = await DropboxAuth.getValidAccessToken();
     final libraryPath = await getSelectedLibPathFromSharedPrefs();
-    if (token == null || libraryPath == null) return false;
+    if (libraryPath == null) return false;
 
     final cacheFile = await _coverFile(relativePath, bookId);
-    if (await cacheFile.exists()) return true;
+    if (await cacheFile.exists()) {
+      _readyCoverPaths[_memoryKey(relativePath, bookId)] = cacheFile.path;
+      return true;
+    }
 
     final cachePath = cacheFile.path;
     final pendingDownload = _pendingCoverDownloads[cachePath];
@@ -87,6 +95,7 @@ class ImageCacher {
       );
       if (response.statusCode != 200) return false;
       await cacheFile.writeAsBytes(response.bodyBytes, flush: true);
+      _readyCoverPaths[_memoryKey(relativePath, bookId)] = cacheFile.path;
       return true;
     }();
 
@@ -105,7 +114,7 @@ class ImageCacher {
     int? bookId,
   ) async {
     if (relativePath == null || bookId == null) return;
-    final token = await getTokenFromPreferences();
+    final token = await DropboxAuth.getValidAccessToken();
     final basePath = await getSelectedLibPathFromSharedPrefs();
     if (basePath == null) return;
     final response = await downloadThumbnailImage(
@@ -124,7 +133,10 @@ class ImageCacher {
     int? bookId,
   ) async {
     if (relativePath == null || bookId == null) return false;
-    return (await _coverFile(relativePath, bookId)).exists();
+    final file = await _coverFile(relativePath, bookId);
+    final exists = await file.exists();
+    if (exists) _readyCoverPaths[_memoryKey(relativePath, bookId)] = file.path;
+    return exists;
   }
 
   Future<bool> checkIfCachedThumbnailExists(int bookId) async {
@@ -133,7 +145,9 @@ class ImageCacher {
   }
 
   Future<String> returnCachedImagePath(String relativePath, int bookId) async {
-    return (await _coverFile(relativePath, bookId)).path;
+    final file = await _coverFile(relativePath, bookId);
+    _readyCoverPaths[_memoryKey(relativePath, bookId)] = file.path;
+    return file.path;
   }
 
   Future<String> returnCachedThumbnailPath(int bookId) async {

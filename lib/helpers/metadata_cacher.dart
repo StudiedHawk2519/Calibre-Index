@@ -2,20 +2,20 @@ import 'dart:convert';
 
 import 'package:calibre_carte/helpers/cache_invalidator.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dart:io';
 
 import '../helpers/db_helper.dart';
+import 'dropbox_auth.dart';
 
 class MetadataCacher {
   //Should make a shared preferences helper
-  Future<String?> getTokenFromPreferences() async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
-    return sp.getString('token');
+  Future<String> getTokenFromPreferences() async {
+    return DropboxAuth.getValidAccessToken();
   }
 
   Future<String?> getSelectedLibPathFromSharedPrefs() async {
@@ -43,10 +43,7 @@ class MetadataCacher {
       throw StateError('No Calibre library is selected.');
     }
 
-    final accessToken = await getTokenFromPreferences() ?? token;
-    if (accessToken == null) {
-      throw StateError('Dropbox is not connected.');
-    }
+    final accessToken = token ?? await getTokenFromPreferences();
 
     final response =
         await downloadMetadata(accessToken, '${selectedPath}metadata.db');

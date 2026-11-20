@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:calibre_carte/helpers/cache_invalidator.dart';
+import 'package:calibre_carte/helpers/dropbox_auth.dart';
 import 'package:calibre_carte/helpers/metadata_cacher.dart';
 import 'package:calibre_carte/helpers/oauth_helper.dart';
 import 'package:calibre_carte/providers/color_theme_provider.dart';
@@ -51,7 +52,7 @@ class _DropboxDropdownState extends State<DropboxDropdown> {
 
   Future<bool> loadingToken() async {
     String? temp;
-    SharedPreferences sp = await SharedPreferences.getInstance();
+    final sp = await SharedPreferences.getInstance();
     if (sp.containsKey('token')) {
       dirNames.clear();
       dropboxEmail = sp.getString('dropboxEmail');
@@ -71,6 +72,8 @@ class _DropboxDropdownState extends State<DropboxDropdown> {
   Future<void> deleteToken() async {
     final pref = await SharedPreferences.getInstance();
     await pref.remove('token');
+    await pref.remove('dropbox_refresh_token');
+    await pref.remove('dropbox_token_expiry');
   }
 
   Future<void> storeStringInSharedPrefs(key, val) async {
@@ -331,6 +334,7 @@ class _DropboxDropdownState extends State<DropboxDropdown> {
           'redirect_uri': callbackUri.toString(),
           'code_challenge': codeChallenge,
           'code_challenge_method': OAuthUtils.codeChallengeMethod,
+          'token_access_type': 'offline',
           'state': state,
         },
       );
@@ -469,12 +473,13 @@ class _DropboxDropdownState extends State<DropboxDropdown> {
           path: library.key,
           name: library.value,
           accessToken: accessToken,
+          tokenData: tokenData,
           update: update,
           loadingDialogOpen: true,
         );
       } else {
         _dismissLoadingDialog();
-        _showLibraryPicker(libraries, accessToken, update);
+        _showLibraryPicker(libraries, tokenData, update);
       }
     } on ClientException catch (error) {
       _dismissLoadingDialog();
@@ -490,9 +495,10 @@ class _DropboxDropdownState extends State<DropboxDropdown> {
 
   void _showLibraryPicker(
     Map<String, String> libraries,
-    String accessToken,
+    Map<String, dynamic> tokenData,
     Update update,
   ) {
+    final accessToken = tokenData['access_token'] as String;
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -516,6 +522,7 @@ class _DropboxDropdownState extends State<DropboxDropdown> {
                         path: entry.key,
                         name: entry.value,
                         accessToken: accessToken,
+                        tokenData: tokenData,
                         update: update,
                       ),
                     );
@@ -532,6 +539,7 @@ class _DropboxDropdownState extends State<DropboxDropdown> {
     required String path,
     required String name,
     required String accessToken,
+    required Map<String, dynamic> tokenData,
     required Update update,
     bool loadingDialogOpen = false,
   }) async {
@@ -551,7 +559,7 @@ class _DropboxDropdownState extends State<DropboxDropdown> {
         return;
       }
 
-      await storeStringInSharedPrefs('token', accessToken);
+      await DropboxAuth.storeTokenResponse(tokenData);
       update.changeTokenState(true);
       update.updateFlagState(true);
       if (mounted) {
@@ -804,8 +812,7 @@ class _DropboxDropdownState extends State<DropboxDropdown> {
   ) async {
     //    print("Inside refresh Library for some reason");
     Map<String, String> pathNameMap = Map();
-    SharedPreferences sp = await SharedPreferences.getInstance();
-    var token = sp.getString('token');
+    var token = await DropboxAuth.getValidAccessToken();
 
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text("Refreshing Libraries...")));

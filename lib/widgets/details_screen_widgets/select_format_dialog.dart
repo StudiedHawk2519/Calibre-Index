@@ -26,6 +26,8 @@ class _SelectFormatDialogState extends State<SelectFormatDialog> {
   Future<void> deleteToken() async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     await pref.remove('token');
+    await pref.remove('dropbox_refresh_token');
+    await pref.remove('dropbox_token_expiry');
   }
 
   Future<void> getBookDataFormats() async {

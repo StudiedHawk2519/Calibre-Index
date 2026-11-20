@@ -2,15 +2,11 @@ import 'package:calibre_carte/helpers/authors_provider.dart';
 import 'package:calibre_carte/helpers/book_author_link_provider.dart';
 import 'package:calibre_carte/helpers/book_downloader.dart';
 import 'package:calibre_carte/helpers/book_metadata_provider.dart';
-import 'package:calibre_carte/helpers/book_publisher_link_provider.dart';
 import 'package:calibre_carte/helpers/book_rating_link_provider.dart';
 import 'package:calibre_carte/helpers/comments_provider.dart';
 import 'package:calibre_carte/helpers/data_provider.dart';
-import 'package:calibre_carte/models/authors.dart';
-import 'package:calibre_carte/models/books_authors_link.dart';
 import 'package:calibre_carte/models/comments.dart';
 import 'package:calibre_carte/models/data.dart';
-import 'package:calibre_carte/models/publishers.dart';
 import 'package:calibre_carte/models/ratings.dart';
 import 'package:calibre_carte/providers/color_theme_provider.dart';
 import 'package:calibre_carte/providers/update_provider.dart';
@@ -45,7 +41,6 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   String authorText = '';
   late Future<bool> mySecondFuture;
   List<Map<String, String>> dataFormatsFileNameMap = [];
-  Publishers? publishers;
   Map<String, String> allMetadata = {};
 
   Future<bool> checkIfLocalCopyExists() async {
@@ -90,29 +85,28 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       throw StateError('Book ${widget.bookId} was not found.');
     }
     bookDetails = details;
-    bookComments =
-        await CommentsProvider.getCommentByBookID(widget.bookId, null);
-    final List<BooksAuthorsLink> bookAuthorsLinks =
-        await BooksAuthorsLinksProvider.getAuthorsByBookID(widget.bookId);
+    final commentsFuture =
+        CommentsProvider.getCommentByBookID(widget.bookId, null);
+    final authorsFuture =
+        BooksAuthorsLinksProvider.getAuthorsByBookID(widget.bookId);
+    final ratingFuture =
+        BooksRatingLinkProvider.getRatingByBookID(widget.bookId);
+    final metadataFuture =
+        BookMetadataProvider.getMetadataForBook(widget.bookId);
 
-    final List<String> authors = [];
-    for (final link in bookAuthorsLinks) {
-      final int? authorId = link.author;
-      if (authorId == null) continue;
-
-      final Authors? author =
-          await AuthorsProvider.getAuthorByID(authorId, null);
-      final String? name = author?.name;
-      if (name != null && name.isNotEmpty) {
-        authors.add(name);
-      }
-    }
-
-    authorText = authors.join(', ');
-    rating = await BooksRatingLinkProvider.getRatingByBookID(widget.bookId);
-    publishers =
-        await BooksPublisherLinkProvider.getPublisherByBookID(widget.bookId);
-    allMetadata = await BookMetadataProvider.getMetadataForBook(widget.bookId);
+    bookComments = await commentsFuture;
+    final authorLinks = await authorsFuture;
+    final authors = await Future.wait(
+      authorLinks.map((link) async {
+        final authorId = link.author;
+        if (authorId == null) return null;
+        return (await AuthorsProvider.getAuthorByID(authorId, null))?.name;
+      }),
+    );
+    authorText =
+        authors.whereType<String>().where((name) => name.isNotEmpty).join(', ');
+    rating = await ratingFuture;
+    allMetadata = await metadataFuture;
   }
 
   @override
@@ -148,6 +142,10 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     final coverWidth = update.bookLayout == 'list' ? 83.0 : gridCellWidth - 12;
     final coverHeight =
         update.bookLayout == 'list' ? 124.0 : gridCellWidth * 1.5 - 12;
+    final pinnedMetadata = <String, String>{
+      for (final name in update.pinnedCustomMetadata)
+        if (allMetadata.containsKey(name)) name: allMetadata[name]!,
+    };
     return MediaQuery(
       data: MediaQuery.of(context)
           .copyWith(textScaler: TextScaler.linear(textScaleFactor(context))),
@@ -178,10 +176,11 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               ],
             ),
             DetailsLeftTile(
-              publishers: publishers,
               rating: rating,
               bookDetails: bookDetails,
               authorText: authorText,
+              pinnedMetadata: pinnedMetadata,
+              goodreadsEnabled: update.goodreadsLinks,
               onShowAllMetadata: _showAllMetadata,
             ),
             const SizedBox(height: 16),

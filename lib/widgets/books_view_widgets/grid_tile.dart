@@ -4,6 +4,7 @@ import 'package:calibre_carte/providers/list_tile.dart';
 import 'package:calibre_carte/screens/book_details_screen.dart';
 import 'package:calibre_carte/widgets/book_details_cover_image.dart';
 import 'package:calibre_carte/widgets/download_icon.dart';
+import 'package:calibre_carte/widgets/goodreads_link_text.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -14,6 +15,7 @@ class CalibreGridTile extends StatefulWidget {
   final bool matchOriginalCoverSize;
   final bool showTitleOverlay;
   final double coverCornerRadius;
+  final bool goodreadsLinks;
 
   const CalibreGridTile(
     this.index,
@@ -22,6 +24,7 @@ class CalibreGridTile extends StatefulWidget {
     this.matchOriginalCoverSize = true,
     this.showTitleOverlay = true,
     this.coverCornerRadius = 24,
+    this.goodreadsLinks = false,
   });
 
   @override
@@ -110,8 +113,12 @@ class _CalibreGridTileState extends State<CalibreGridTile> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      widget.book.title ?? 'Untitled',
+                    GoodreadsLinkText(
+                      text: widget.book.title ?? 'Untitled',
+                      query: widget.book.isbn?.isNotEmpty == true
+                          ? widget.book.isbn!
+                          : widget.book.title ?? '',
+                      enabled: widget.goodreadsLinks,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
@@ -121,8 +128,10 @@ class _CalibreGridTileState extends State<CalibreGridTile> {
                     ),
                     if (widget.book.author_sort?.isNotEmpty == true) ...[
                       const SizedBox(height: 4),
-                      Text(
-                        widget.book.author_sort!,
+                      GoodreadsLinkText(
+                        text: widget.book.author_sort!,
+                        query: widget.book.author_sort!,
+                        enabled: widget.goodreadsLinks,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Colors.white.withValues(alpha: 0.88),
                             ),

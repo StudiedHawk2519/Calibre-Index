@@ -1,5 +1,4 @@
 import 'package:calibre_carte/models/books.dart';
-import 'package:calibre_carte/models/publishers.dart';
 import 'package:calibre_carte/models/ratings.dart';
 import 'package:calibre_carte/widgets/details_screen_widgets/details_text.dart';
 import 'package:material_ui/material_ui.dart';
@@ -8,7 +7,8 @@ class DetailsLeftTile extends StatelessWidget {
   final Books bookDetails;
   final String authorText;
   final Ratings? rating;
-  final Publishers? publishers;
+  final Map<String, String> pinnedMetadata;
+  final bool goodreadsEnabled;
   final VoidCallback onShowAllMetadata;
 
   const DetailsLeftTile({
@@ -16,7 +16,8 @@ class DetailsLeftTile extends StatelessWidget {
     required this.bookDetails,
     required this.authorText,
     required this.rating,
-    required this.publishers,
+    required this.pinnedMetadata,
+    required this.goodreadsEnabled,
     required this.onShowAllMetadata,
   });
 
@@ -27,7 +28,8 @@ class DetailsLeftTile extends StatelessWidget {
       bookDetails,
       authorText,
       rating,
-      publishers,
+      pinnedMetadata,
+      goodreadsEnabled,
       onShowAllMetadata,
     );
   }

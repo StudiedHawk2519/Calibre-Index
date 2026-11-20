@@ -9,6 +9,8 @@ class Update with ChangeNotifier {
   int _gridColumns;
   double _coverCornerRadius;
   bool _stackSeries;
+  bool _goodreadsLinks;
+  List<String> _pinnedCustomMetadata;
   String _bookLayout;
 
   Update(
@@ -18,12 +20,16 @@ class Update with ChangeNotifier {
     int gridColumns = 2,
     double coverCornerRadius = 24,
     bool stackSeries = false,
+    bool goodreadsLinks = false,
+    List<String> pinnedCustomMetadata = const [],
     String bookLayout = 'list',
   })  : _matchOriginalCoverSize = matchOriginalCoverSize,
         _showCoverTitles = showCoverTitles,
         _gridColumns = gridColumns.clamp(2, 5).toInt(),
         _coverCornerRadius = coverCornerRadius.clamp(0, 40),
         _stackSeries = stackSeries,
+        _goodreadsLinks = goodreadsLinks,
+        _pinnedCustomMetadata = List.of(pinnedCustomMetadata),
         _bookLayout = bookLayout;
 
   void changeTokenState(bool tokenStateFlag) {
@@ -75,6 +81,28 @@ class Update with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> changeGoodreadsLinks(bool value) async {
+    if (_goodreadsLinks == value) return;
+    _goodreadsLinks = value;
+    await _saveBool('goodreadsLinks', value);
+    notifyListeners();
+  }
+
+  Future<void> togglePinnedCustomMetadata(String name, bool pinned) async {
+    final columns = List<String>.of(_pinnedCustomMetadata);
+    if (pinned && !columns.contains(name)) {
+      columns.add(name);
+    } else if (!pinned) {
+      columns.remove(name);
+    } else {
+      return;
+    }
+    _pinnedCustomMetadata = columns;
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setStringList('pinnedCustomMetadata', columns);
+    notifyListeners();
+  }
+
   Future<void> changeBookLayout(String value) async {
     if (value != 'grid' && value != 'list') return;
     if (_bookLayout == value) return;
@@ -106,5 +134,8 @@ class Update with ChangeNotifier {
   int get gridColumns => _gridColumns;
   double get coverCornerRadius => _coverCornerRadius;
   bool get stackSeries => _stackSeries;
+  bool get goodreadsLinks => _goodreadsLinks;
+  List<String> get pinnedCustomMetadata =>
+      List.unmodifiable(_pinnedCustomMetadata);
   String get bookLayout => _bookLayout;
 }
