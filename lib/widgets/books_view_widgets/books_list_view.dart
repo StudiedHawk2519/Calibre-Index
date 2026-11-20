@@ -74,6 +74,7 @@ class _BooksListViewState extends State<BooksListView> {
     }
 
     return ListView(
+      scrollCacheExtent: const ScrollCacheExtent.pixels(600),
       padding: const EdgeInsets.only(top: 8, bottom: 8),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: children,

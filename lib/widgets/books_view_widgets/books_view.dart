@@ -1,15 +1,12 @@
 import 'package:calibre_carte/helpers/book_author_link_provider.dart';
-import 'package:calibre_carte/models/books_authors_link.dart';
 import 'package:calibre_carte/providers/update_provider.dart';
 import 'package:calibre_carte/widgets/books_view_widgets/books_grid_view.dart';
 import 'package:calibre_carte/widgets/books_view_widgets/books_list_view.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:calibre_carte/helpers/authors_provider.dart';
 import 'package:calibre_carte/helpers/books_provider.dart';
 import 'package:calibre_carte/helpers/book_sort.dart';
 import 'package:calibre_carte/helpers/tags_provider.dart';
 import 'package:calibre_carte/helpers/series_provider.dart';
-import 'package:calibre_carte/models/authors.dart';
 import 'package:calibre_carte/models/books.dart';
 
 class BooksView extends StatefulWidget {
@@ -76,28 +73,18 @@ class _BooksViewState extends State<BooksView> {
   //aggregates all the data to display
   Future<void> getBooks() async {
     books = await BooksProvider.getAllBooks(widget.update.shouldDoUpdate);
-    for (final book in books) {
-      List<BooksAuthorsLink> bookAuthorsLinks =
-          await BooksAuthorsLinksProvider.getAuthorsByBookID(book.id);
-      final List<String> authors = [];
-      for (final link in bookAuthorsLinks) {
-        final int? authorId = link.author;
-        if (authorId == null) continue;
-
-        final Authors? author =
-            await AuthorsProvider.getAuthorByID(authorId, null);
-        final String? name = author?.name;
-        if (name != null && name.isNotEmpty) {
-          authors.add(name);
-        }
-      }
-      book.author_sort = authors.join(', ');
-    }
     final bookIds =
         books.map((book) => book.id).whereType<int>().toList(growable: false);
-    tagsByBookId = await TagsProvider.getTagNamesByBookIds(bookIds);
-    seriesByBookId = await SeriesProvider.getNamesByBookIds(bookIds);
+    final authorNamesFuture =
+        BooksAuthorsLinksProvider.getAuthorNamesByBookIds(bookIds);
+    final tagsFuture = TagsProvider.getTagNamesByBookIds(bookIds);
+    final seriesFuture = SeriesProvider.getNamesByBookIds(bookIds);
+
+    final authorNames = await authorNamesFuture;
+    tagsByBookId = await tagsFuture;
+    seriesByBookId = await seriesFuture;
     for (final book in books) {
+      book.author_sort = authorNames[book.id]?.join(', ') ?? '';
       book.series = seriesByBookId[book.id];
     }
   }

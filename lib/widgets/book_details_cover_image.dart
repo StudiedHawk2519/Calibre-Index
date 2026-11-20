@@ -37,26 +37,92 @@ class _BookDetailsCoverImageState extends State<BookDetailsCoverImage> {
     }
 
     final cacher = ImageCacher();
-    if (!await cacher.checkIfCachedFileExists(relativePath, bookId) &&
-        !await cacher.downloadAndCacheImage(relativePath, bookId)) {
+    try {
+      if (await cacher.checkIfCachedFileExists(relativePath, bookId)) {
+        final imagePath =
+            await cacher.returnCachedImagePath(relativePath, bookId);
+        if (mounted) {
+          setState(() {
+            _imagePath = imagePath;
+            _loading = false;
+          });
+        }
+        return;
+      }
+
+      final thumbnailPath =
+          ImageCacher.cachedThumbnailPath(relativePath, bookId) ??
+              await cacher.findCachedThumbnailPath(relativePath, bookId) ??
+              await cacher.downloadAndCacheImageThumbnail(
+                relativePath,
+                bookId,
+              );
+      if (thumbnailPath != null && mounted) {
+        setState(() {
+          _imagePath = thumbnailPath;
+          _loading = false;
+        });
+      }
+      unawaited(_loadFullCover());
+    } on Exception catch (error, stackTrace) {
+      debugPrint('Could not load a cached book cover: $error\n$stackTrace');
       if (mounted) setState(() => _loading = false);
-      return;
+    } on StateError catch (error, stackTrace) {
+      debugPrint('Could not load a cached book cover: $error\n$stackTrace');
+      if (mounted) setState(() => _loading = false);
     }
-    final imagePath = await cacher.returnCachedImagePath(relativePath, bookId);
-    if (mounted) {
-      setState(() {
-        _imagePath = imagePath;
-        _loading = false;
-      });
+  }
+
+  Future<void> _loadFullCover() async {
+    final relativePath = widget.relativePath;
+    final bookId = widget.bookId;
+    if (relativePath == null || bookId == null) return;
+
+    try {
+      final cacher = ImageCacher();
+      if (!await cacher.downloadAndCacheImage(relativePath, bookId)) {
+        if (mounted && _imagePath == null) setState(() => _loading = false);
+        return;
+      }
+      final imagePath =
+          await cacher.returnCachedImagePath(relativePath, bookId);
+      if (mounted) {
+        setState(() {
+          _imagePath = imagePath;
+          _loading = false;
+        });
+      }
+    } on Exception catch (error, stackTrace) {
+      debugPrint(
+          'Could not load the full-size book cover: $error\n$stackTrace');
+      if (mounted && _imagePath == null) setState(() => _loading = false);
+    } on StateError catch (error, stackTrace) {
+      debugPrint(
+          'Could not load the full-size book cover: $error\n$stackTrace');
+      if (mounted && _imagePath == null) setState(() => _loading = false);
+    }
+  }
+
+  void _startLoading() {
+    final relativePath = widget.relativePath;
+    final bookId = widget.bookId;
+    final fullPath = relativePath == null || bookId == null
+        ? null
+        : ImageCacher.cachedCoverPath(relativePath, bookId);
+    _imagePath = fullPath ??
+        (relativePath == null || bookId == null
+            ? null
+            : ImageCacher.cachedThumbnailPath(relativePath, bookId));
+    _loading = _imagePath == null;
+    if (fullPath == null) {
+      unawaited(_imagePath == null ? _loadCover() : _loadFullCover());
     }
   }
 
   @override
   void initState() {
     super.initState();
-    _imagePath = _getInMemoryCoverPath();
-    _loading = _imagePath == null;
-    if (_loading) unawaited(_loadCover());
+    _startLoading();
   }
 
   @override
@@ -64,31 +130,32 @@ class _BookDetailsCoverImageState extends State<BookDetailsCoverImage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.bookId != widget.bookId ||
         oldWidget.relativePath != widget.relativePath) {
-      _imagePath = _getInMemoryCoverPath();
-      _loading = _imagePath == null;
-      if (_loading) unawaited(_loadCover());
+      _startLoading();
     }
-  }
-
-  String? _getInMemoryCoverPath() {
-    final bookId = widget.bookId;
-    final relativePath = widget.relativePath;
-    if (bookId == null || relativePath == null) return null;
-    return ImageCacher.cachedCoverPath(relativePath, bookId);
   }
 
   @override
   Widget build(BuildContext context) {
     final imagePath = _imagePath;
     if (imagePath != null) {
-      return Image.file(
-        File(imagePath),
-        height: widget.height,
-        width: widget.width,
-        fit: widget.fit,
-        errorBuilder: (context, error, stackTrace) {
-          debugPrint('Could not display cached book cover: $error');
-          return _placeholder();
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final displayWidth = widget.width ?? constraints.maxWidth;
+          final physicalWidth = displayWidth.isFinite && displayWidth > 0
+              ? (displayWidth * MediaQuery.of(context).devicePixelRatio).round()
+              : null;
+          return Image.file(
+            File(imagePath),
+            height: widget.height,
+            width: widget.width,
+            cacheWidth: physicalWidth,
+            fit: widget.fit,
+            filterQuality: FilterQuality.medium,
+            errorBuilder: (context, error, stackTrace) {
+              debugPrint('Could not display cached book cover: $error');
+              return _placeholder();
+            },
+          );
         },
       );
     }

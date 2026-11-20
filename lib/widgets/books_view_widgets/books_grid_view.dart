@@ -89,6 +89,7 @@ class _BooksGridViewState extends State<BooksGridView> {
     return GridView.count(
       crossAxisCount: update.gridColumns,
       childAspectRatio: 2 / 3,
+      scrollCacheExtent: const ScrollCacheExtent.pixels(600),
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       children: children,
     );

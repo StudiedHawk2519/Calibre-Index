@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:calibre_carte/homepage.dart';
@@ -12,12 +13,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await SystemChrome.setPreferredOrientations([
+  unawaited(SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
-  ]);
+  ]));
   runApp(MyApp());
 }
 
@@ -38,9 +39,6 @@ class _MyAppState extends State<MyApp> {
   String bookLayout = 'list';
   Future? myFuture;
   bool darkMode = false;
-  ColorScheme? lightDynamicScheme;
-  ColorScheme? darkDynamicScheme;
-
   Future<void> getTokenAndSearchFromPreferences() async {
     SharedPreferences sp = await SharedPreferences.getInstance();
     darkMode = sp.getBool('darkMode') ?? false;
@@ -54,30 +52,30 @@ class _MyAppState extends State<MyApp> {
     goodreadsLinks = sp.getBool('goodreadsLinks') ?? false;
     pinnedCustomMetadata = sp.getStringList('pinnedCustomMetadata') ?? [];
     bookLayout = sp.getString('layout') ?? 'list';
-    if (Platform.isAndroid) {
-      try {
-        final corePalette = await DynamicColorPlugin.getCorePalette();
-        if (corePalette != null) {
-          lightDynamicScheme = corePalette.toColorScheme();
-          darkDynamicScheme =
-              corePalette.toColorScheme(brightness: Brightness.dark);
-        }
-      } on PlatformException catch (error) {
-        debugPrint('Could not read the Android dynamic color palette: $error');
-      }
-    }
-//    Set the default download directory here once if it not set already
-    if (!sp.containsKey("downloaded_directory")) {
-      Directory defaultDownloadDirectory =
-          (await getExternalStorageDirectory())!;
-//      Creating books if that doesn't exist
-      if (!Directory("${defaultDownloadDirectory.path}/books").existsSync()) {
-        Directory("${defaultDownloadDirectory.path}/books")
-            .createSync(recursive: true);
-      }
+    unawaited(_ensureDefaultDownloadDirectory(sp));
+  }
 
-      sp.setString(
-          "downloaded_directory", defaultDownloadDirectory.path + "/books");
+  Future<void> _ensureDefaultDownloadDirectory(
+    SharedPreferences preferences,
+  ) async {
+    if (preferences.containsKey('downloaded_directory')) return;
+    try {
+      final externalDirectory = await getExternalStorageDirectory();
+      if (externalDirectory == null) {
+        throw FileSystemException(
+          'Android did not provide an app storage directory.',
+        );
+      }
+      final booksDirectory = Directory(
+        '${externalDirectory.path}${Platform.pathSeparator}books',
+      );
+      await booksDirectory.create(recursive: true);
+      if (preferences.containsKey('downloaded_directory')) return;
+      await preferences.setString('downloaded_directory', booksDirectory.path);
+    } on Exception catch (error, stackTrace) {
+      debugPrint(
+        'Could not prepare the default download directory: $error\n$stackTrace',
+      );
     }
   }
 
@@ -113,25 +111,24 @@ class _MyAppState extends State<MyApp> {
                 create: (_) => BookDetailsNavigation(),
               ),
               ChangeNotifierProvider(
-                create: (_) => ColorTheme(
-                  darkMode,
-                  lightDynamicScheme: lightDynamicScheme,
-                  darkDynamicScheme: darkDynamicScheme,
-                ),
+                create: (_) => ColorTheme(darkMode),
               ),
               ChangeNotifierProvider(
                 create: (_) => ListTileProvider(),
               ),
             ],
-            child: Consumer<ColorTheme>(
-              builder: (context, colorTheme, child) => MaterialApp(
-                title: "Calibre Index",
-                debugShowCheckedModeBanner: false,
-                theme: colorTheme.themeDataFor(colorTheme.lightColorScheme),
-                darkTheme: colorTheme.themeDataFor(colorTheme.darkColorScheme),
-                themeMode:
-                    colorTheme.darkMode ? ThemeMode.dark : ThemeMode.light,
-                home: MyHomePage(),
+            child: DynamicColorLoader(
+              child: Consumer<ColorTheme>(
+                builder: (context, colorTheme, child) => MaterialApp(
+                  title: "Calibre Index",
+                  debugShowCheckedModeBanner: false,
+                  theme: colorTheme.themeDataFor(colorTheme.lightColorScheme),
+                  darkTheme:
+                      colorTheme.themeDataFor(colorTheme.darkColorScheme),
+                  themeMode:
+                      colorTheme.darkMode ? ThemeMode.dark : ThemeMode.light,
+                  home: MyHomePage(),
+                ),
               ),
             ),
           );
@@ -186,4 +183,38 @@ class _MyAppState extends State<MyApp> {
       },
     );
   }
+}
+
+class DynamicColorLoader extends StatefulWidget {
+  final Widget child;
+
+  const DynamicColorLoader({required this.child, super.key});
+
+  @override
+  State<DynamicColorLoader> createState() => _DynamicColorLoaderState();
+}
+
+class _DynamicColorLoaderState extends State<DynamicColorLoader> {
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadDynamicColors());
+  }
+
+  Future<void> _loadDynamicColors() async {
+    if (!Platform.isAndroid) return;
+    try {
+      final corePalette = await DynamicColorPlugin.getCorePalette();
+      if (corePalette == null || !mounted) return;
+      Provider.of<ColorTheme>(context, listen: false).updateDynamicColorSchemes(
+        corePalette.toColorScheme(),
+        corePalette.toColorScheme(brightness: Brightness.dark),
+      );
+    } on PlatformException catch (error) {
+      debugPrint('Could not read the Android dynamic color palette: $error');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

@@ -4,19 +4,20 @@ class ColorTheme extends ChangeNotifier {
   ColorTheme(
     this._darkMode, {
     this.seedColor = const Color(0xFF52638A),
-    this.lightDynamicScheme,
-    this.darkDynamicScheme,
-  });
+    ColorScheme? lightDynamicScheme,
+    ColorScheme? darkDynamicScheme,
+  })  : _lightDynamicScheme = lightDynamicScheme,
+        _darkDynamicScheme = darkDynamicScheme;
 
   final Color seedColor;
-  final ColorScheme? lightDynamicScheme;
-  final ColorScheme? darkDynamicScheme;
+  ColorScheme? _lightDynamicScheme;
+  ColorScheme? _darkDynamicScheme;
   bool _darkMode;
 
   ColorScheme get lightColorScheme =>
-      lightDynamicScheme ?? _createFallbackScheme(Brightness.light);
+      _lightDynamicScheme ?? _createFallbackScheme(Brightness.light);
   ColorScheme get darkColorScheme =>
-      darkDynamicScheme ?? _createFallbackScheme(Brightness.dark);
+      _darkDynamicScheme ?? _createFallbackScheme(Brightness.dark);
   ColorScheme get colorScheme => _darkMode ? darkColorScheme : lightColorScheme;
 
   ColorScheme _createFallbackScheme(Brightness brightness) =>
@@ -150,6 +151,12 @@ class ColorTheme extends ChangeNotifier {
   void darkModeOn() => _setDarkMode(true);
 
   void darkModeOff() => _setDarkMode(false);
+
+  void updateDynamicColorSchemes(ColorScheme light, ColorScheme dark) {
+    _lightDynamicScheme = light;
+    _darkDynamicScheme = dark;
+    notifyListeners();
+  }
 
   void _setDarkMode(bool value) {
     if (_darkMode == value) return;

@@ -9,7 +9,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ImageCacher {
   static final Map<String, Future<bool>> _pendingCoverDownloads = {};
+  static final Map<String, Future<String?>> _pendingThumbnailDownloads = {};
   static final Map<String, String> _readyCoverPaths = {};
+  static final Map<String, String> _readyThumbnailPaths = {};
 
   static String _memoryKey(String relativePath, int bookId) =>
       '$bookId|$relativePath';
@@ -17,7 +19,13 @@ class ImageCacher {
   static String? cachedCoverPath(String relativePath, int bookId) =>
       _readyCoverPaths[_memoryKey(relativePath, bookId)];
 
-  static void clearMemoryCache() => _readyCoverPaths.clear();
+  static String? cachedThumbnailPath(String relativePath, int bookId) =>
+      _readyThumbnailPaths[_memoryKey(relativePath, bookId)];
+
+  static void clearMemoryCache() {
+    _readyCoverPaths.clear();
+    _readyThumbnailPaths.clear();
+  }
 
   Future<String?> getSelectedLibPathFromSharedPrefs() async {
     final preferences = await SharedPreferences.getInstance();
@@ -34,12 +42,17 @@ class ImageCacher {
     );
   }
 
-  Future<Response> downloadThumbnailImage(String? token, String path) {
+  Future<Response> downloadThumbnailImage(String token, String path) {
     return post(
       Uri.parse('https://content.dropboxapi.com/2/files/get_thumbnail'),
       headers: {
-        if (token != null) 'Authorization': 'Bearer $token',
-        'Dropbox-API-Arg': jsonEncode({'path': path}),
+        'Authorization': 'Bearer $token',
+        'Dropbox-API-Arg': jsonEncode({
+          'path': path,
+          'format': 'jpeg',
+          'size': 'w256h256',
+          'mode': 'bestfit',
+        }),
       },
     );
   }
@@ -66,6 +79,13 @@ class ImageCacher {
     final cacheKey = _stableHash('$libraryPath/$relativePath/$bookId');
     return File(
         join(cacheDirectory.path, 'cover_${cacheKey.toRadixString(16)}.jpg'));
+  }
+
+  Future<File> _thumbnailFile(String relativePath, int bookId) async {
+    final coverFile = await _coverFile(relativePath, bookId);
+    return File(
+      join(dirname(coverFile.path), 'thumbnail_${basename(coverFile.path)}'),
+    );
   }
 
   Future<bool> downloadAndCacheImage(
@@ -109,23 +129,43 @@ class ImageCacher {
     }
   }
 
-  Future<void> downloadAndCacheImageThumbnail(
+  Future<String?> downloadAndCacheImageThumbnail(
     String? relativePath,
     int? bookId,
   ) async {
-    if (relativePath == null || bookId == null) return;
-    final token = await DropboxAuth.getValidAccessToken();
-    final basePath = await getSelectedLibPathFromSharedPrefs();
-    if (basePath == null) return;
-    final response = await downloadThumbnailImage(
-      token,
-      '$basePath$relativePath/cover.jpg',
-    );
-    if (response.statusCode != 200) return;
+    if (relativePath == null || bookId == null) return null;
+    final cacheFile = await _thumbnailFile(relativePath, bookId);
+    final cachePath = cacheFile.path;
+    if (await cacheFile.exists()) {
+      _readyThumbnailPaths[_memoryKey(relativePath, bookId)] = cachePath;
+      return cachePath;
+    }
 
-    final tempDirectory = await getTemporaryDirectory();
-    final thumbnailPath = join(tempDirectory.path, 'thumbnail_$bookId.jpg');
-    await File(thumbnailPath).writeAsBytes(response.bodyBytes, flush: true);
+    final pending = _pendingThumbnailDownloads[cachePath];
+    if (pending != null) return pending;
+
+    final download = () async {
+      final token = await DropboxAuth.getValidAccessToken();
+      final libraryPath = await getSelectedLibPathFromSharedPrefs();
+      if (libraryPath == null) return null;
+      final response = await downloadThumbnailImage(
+        token,
+        '$libraryPath$relativePath/cover.jpg',
+      );
+      if (response.statusCode != 200) return null;
+      await cacheFile.writeAsBytes(response.bodyBytes, flush: true);
+      _readyThumbnailPaths[_memoryKey(relativePath, bookId)] = cachePath;
+      return cachePath;
+    }();
+
+    _pendingThumbnailDownloads[cachePath] = download;
+    try {
+      return await download;
+    } finally {
+      if (identical(_pendingThumbnailDownloads[cachePath], download)) {
+        _pendingThumbnailDownloads.remove(cachePath);
+      }
+    }
   }
 
   Future<bool> checkIfCachedFileExists(
@@ -139,19 +179,19 @@ class ImageCacher {
     return exists;
   }
 
-  Future<bool> checkIfCachedThumbnailExists(int bookId) async {
-    final tempDirectory = await getTemporaryDirectory();
-    return File(join(tempDirectory.path, 'thumbnail_$bookId.jpg')).exists();
+  Future<String?> findCachedThumbnailPath(
+    String relativePath,
+    int bookId,
+  ) async {
+    final file = await _thumbnailFile(relativePath, bookId);
+    if (!await file.exists()) return null;
+    _readyThumbnailPaths[_memoryKey(relativePath, bookId)] = file.path;
+    return file.path;
   }
 
   Future<String> returnCachedImagePath(String relativePath, int bookId) async {
     final file = await _coverFile(relativePath, bookId);
     _readyCoverPaths[_memoryKey(relativePath, bookId)] = file.path;
     return file.path;
-  }
-
-  Future<String> returnCachedThumbnailPath(int bookId) async {
-    final tempDirectory = await getTemporaryDirectory();
-    return join(tempDirectory.path, 'thumbnail_$bookId.jpg');
   }
 }

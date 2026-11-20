@@ -1,6 +1,7 @@
 import 'package:calibre_carte/screens/about_us.dart';
 import 'package:calibre_carte/screens/custom_metadata_settings.dart';
 import 'package:calibre_carte/screens/instructions_screen.dart';
+import 'package:calibre_carte/screens/library_book_list_screen.dart';
 import 'package:calibre_carte/screens/license.dart';
 import 'package:calibre_carte/screens/privacy_policy.dart';
 import 'package:calibre_carte/widgets/settings_screen_widgets/cloud_settings.dart';
@@ -104,6 +105,13 @@ class SettingsNew extends StatelessWidget {
           context,
           Column(
             children: [
+              _infoTile(
+                context,
+                'Library book list',
+                Icons.menu_book_rounded,
+                const LibraryBookListScreen(),
+              ),
+              const Divider(height: 1, indent: 56),
               _infoTile(
                 context,
                 'About Calibre Index',

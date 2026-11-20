@@ -11,8 +11,10 @@ This is an independent project. It is not affiliated with or endorsed by the Cal
 - **Flexible browsing:** switch between grid and list layouts, sort by title or author, and choose ascending or descending order.
 - **Series support:** author sorting groups series in series-number order; optionally show each series as an overlapping-cover stack in the grid or list, expandable inline.
 - **Personalized covers:** set the grid column count, cover corner rounding, title overlays, and whether covers preserve their original proportions.
-- **Faster browsing:** cover files are cached on the device and decoded-image caching is used when available.
-- **Book details:** view ratings, publication information, the description, and a table of built-in and custom Calibre metadata. Download or open available formats.
+- **Faster browsing:** cover files and lightweight previews are cached on the device, with images decoded near their display size.
+- **Book details:** view ratings, publication information, the description, and built-in and custom Calibre metadata. Pin selected custom columns under the rating, then download or open available formats.
+- **Library book list:** search, select, or copy a plain-text list of every book and author in the library.
+- **Goodreads shortcuts:** optionally open Goodreads searches from book and author names.
 - **Dropbox libraries:** find Calibre libraries in your Dropbox, choose which library to browse, and refresh its metadata.
 - **Offline reading:** choose a download folder, save ebook files for offline access, and open them with a compatible app.
 
@@ -47,7 +49,7 @@ Builds without `DROPBOX_APP_KEY` can run, but cannot connect to Dropbox.
 
 Calibre Index uses Dropbox's authorization-code flow with PKCE; an app secret is not required. The redirect URI must match exactly.
 
-Dropbox access tokens are short-lived. The current client may require you to reconnect after a token expires; long-lived background access requires refresh-token support.
+Dropbox access tokens are short-lived. Calibre Index requests offline access and renews them with a refresh token while the user’s Dropbox authorization remains valid. Existing connections may need to be reauthorized once to grant offline access.
 
 ## Build an Android APK
 
